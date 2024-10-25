@@ -26,9 +26,8 @@ from typing import Optional, Union
 import draccus
 import numpy as np
 import tqdm
-from libero.libero import benchmark
-
 import wandb
+from libero.libero import benchmark
 
 # Append current directory so that interpreter can find experiments.robot
 sys.path.append("../..")
@@ -68,7 +67,8 @@ class GenerateConfig:
     #################################################################################################################
     # LIBERO environment-specific parameters
     #################################################################################################################
-    task_suite_name: str = "libero_spatial"          # Task suite. Options: libero_spatial, libero_object, libero_goal, libero_10, libero_90
+    task_suite_name: str = "libero_spatial"          # Task suite.
+    #                                       Options: libero_spatial, libero_object, libero_goal, libero_10, libero_90
     num_steps_wait: int = 10                         # Number of steps to wait for objects to stabilize in sim
     num_trials_per_task: int = 50                    # Number of rollouts per task
 

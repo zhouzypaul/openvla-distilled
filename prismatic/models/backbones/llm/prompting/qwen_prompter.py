@@ -1,5 +1,5 @@
-
 from typing import Optional
+
 from prismatic.models.backbones.llm.prompting.base_prompter import PromptBuilder
 
 
@@ -58,9 +58,7 @@ class QwenPromptBuilder(PromptBuilder):
         # add EOS if we ended on a "gpt" role (turns is a multiple of 2)
         if self.turn_count % 2 == 0:
             # remove the newline before EOS
-            assert (
-                self.prompt[-1] == '\n'
-            ), f"malformed prompt ({self.prompt}) missing newline before EOS append!"
+            assert self.prompt[-1] == "\n", f"malformed prompt ({self.prompt}) missing newline before EOS append!"
             return self.prompt[:-1] + self.eos
 
         return self.prompt

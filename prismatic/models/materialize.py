@@ -7,10 +7,10 @@ individual functions for clear control flow.
 
 from typing import Optional, Tuple
 
-from prismatic.models.backbones.llm.qwen25 import Qwen25LLMBackbone
 from transformers import PreTrainedTokenizerBase
 
 from prismatic.models.backbones.llm import LLaMa2LLMBackbone, LLMBackbone, MistralLLMBackbone, PhiLLMBackbone
+from prismatic.models.backbones.llm.qwen25 import Qwen25LLMBackbone
 from prismatic.models.backbones.vision import (
     CLIPViTBackbone,
     DinoCLIPViTBackbone,

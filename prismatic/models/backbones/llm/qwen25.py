@@ -4,17 +4,15 @@ qwen2_5.py
 Class definition for all LLMs derived from QwenForCausalLM.
 """
 
-import torch
 from typing import Optional, Sequence, Type
 
-from prismatic.models.backbones.llm.prompting.qwen_prompter import QwenPromptBuilder
-from prismatic.models.backbones.llm.base_llm import HFCausalLLMBackbone
-
-from prismatic.models.backbones.llm.prompting.base_prompter import PromptBuilder, PurePromptBuilder
-
+import torch
 from transformers import AutoModelForCausalLM
 from transformers.models.qwen2.modeling_qwen2 import Qwen2DecoderLayer
 
+from prismatic.models.backbones.llm.base_llm import HFCausalLLMBackbone
+from prismatic.models.backbones.llm.prompting.base_prompter import PromptBuilder
+from prismatic.models.backbones.llm.prompting.qwen_prompter import QwenPromptBuilder
 
 # Registry =>> Support Qwen-2.5 Models (from HF Transformers)
 # fmt: off
