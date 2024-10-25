@@ -11,6 +11,7 @@ import numpy as np
 import torch
 from PIL import Image
 from transformers import LlamaTokenizerFast
+from transformers.models.qwen2.tokenization_qwen2_fast import Qwen2TokenizerFast
 
 from prismatic.models.vlms.prismatic import PrismaticVLM
 from prismatic.overwatch import initialize_overwatch
@@ -62,6 +63,10 @@ class OpenVLA(PrismaticVLM):
                 input_ids = torch.cat(
                     (input_ids, torch.unsqueeze(torch.Tensor([29871]).long(), dim=0).to(input_ids.device)), dim=1
                 )
+        elif isinstance(tokenizer, Qwen2TokenizerFast):
+            # add the Qwen specific assistant prompt.
+            special_tokens = tokenizer("<|im_start|>assistant\n", return_tensors="pt").input_ids.to(self.device)
+            input_ids = torch.cat((input_ids, special_tokens), dim=1)
         else:
             raise ValueError(f"Unsupported `tokenizer` type = {type(tokenizer)}")
 

@@ -88,7 +88,7 @@ class LLaVa_v15_Reproduction_7B(ModelConfig):
     # Align Stage Optimization Parameters
     align_epochs: int = 1
     align_max_steps: Optional[int] = None
-    align_global_batch_size: int = 256
+    align_global_batch_size: int = 96
     align_per_device_batch_size: int = 16
 
     align_learning_rate: float = 1e-3
@@ -102,8 +102,8 @@ class LLaVa_v15_Reproduction_7B(ModelConfig):
     # Finetune Stage Optimization Parameters
     finetune_epochs: int = 1
     finetune_max_steps: Optional[int] = None
-    finetune_global_batch_size: int = 128
-    finetune_per_device_batch_size: int = 16
+    finetune_global_batch_size: int = 48
+    finetune_per_device_batch_size: int = 8
 
     finetune_learning_rate: float = 2e-5
     finetune_weight_decay: float = 0.1
@@ -497,6 +497,19 @@ class Prism_7B_DINOSigLIP_224px(Exp_7B_One_Stage):
     finetune_epochs: int = 2
 
 
+#   =>> Note :: Run with `--dataset.type "llava-lvis4v-lrv"`
+@dataclass
+class Prism_Qwen25_0_5B_DINOSigLIP_224px(Exp_7B_One_Stage):
+    model_id: str = "prism-qwen25-dinosiglip-224px+0_5b"
+    vision_backbone_id: str = "dinosiglip-vit-so-224px"
+    image_resize_strategy: str = "resize-naive"
+    llm_backbone_id: str = "qwen25-0_5b-pure"
+    arch_specifier: str = "no-align+fused-gelu-mlp"
+    finetune_epochs: int = 2
+
+    llm_max_length: int = 32768
+
+
 # === Define a Model Registry Enum for Reference & Validation ===
 @unique
 class ModelRegistry(Enum):
@@ -573,6 +586,9 @@ class ModelRegistry(Enum):
     OPT_DINOSIGLIP_224PX_RESIZE_NAIVE = Opt_7B_DINOSigLIP_ViT_SO_p14_224px_Resize_Naive
     PRISM_DINOSIGLIP_224PX_CONTROLLED_7B = Prism_7B_DINOSigLIP_224px_Controlled
     PRISM_DINOSIGLIP_224PX_7B = Prism_7B_DINOSigLIP_224px
+
+    # Qwen
+    PRISM_QWEN25_DINOSIGLIP_224PX_0_5B = Prism_Qwen25_0_5B_DINOSigLIP_224px
 
     @property
     def model_id(self) -> str:

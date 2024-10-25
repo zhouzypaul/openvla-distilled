@@ -18,7 +18,7 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from transformers import CodeGenTokenizerFast, LlamaTokenizerFast, PreTrainedTokenizerBase
-
+from transformers.models.qwen2.tokenization_qwen2_fast import Qwen2TokenizerFast
 from prismatic.models.backbones.llm.prompting import PromptBuilder
 from prismatic.models.backbones.vision import ImageTransform
 
@@ -147,6 +147,10 @@ class FinetuneDataset(Dataset[Dict[str, torch.Tensor]]):
 
             # Phi-2 Tokenizer == CodeGenTokenizer (Fast) -- no special handling!
             elif isinstance(self.tokenizer, CodeGenTokenizerFast):
+                pass
+
+            # Qwen2 Tokenizer -- no special handling!
+            elif isinstance(self.tokenizer, Qwen2TokenizerFast):
                 pass
 
             else:

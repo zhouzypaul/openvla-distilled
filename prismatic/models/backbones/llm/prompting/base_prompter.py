@@ -5,8 +5,8 @@ Abstract class definition of a multi-turn prompt builder for ensuring consistent
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
-
+from typing import Callable, Optional
+from transformers import AutoTokenizer
 
 class PromptBuilder(ABC):
     def __init__(self, model_family: str, system_prompt: Optional[str] = None) -> None:

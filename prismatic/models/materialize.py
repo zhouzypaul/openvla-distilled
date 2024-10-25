@@ -7,6 +7,7 @@ individual functions for clear control flow.
 
 from typing import Optional, Tuple
 
+from prismatic.models.backbones.llm.qwen25 import Qwen25LLMBackbone
 from transformers import PreTrainedTokenizerBase
 
 from prismatic.models.backbones.llm import LLaMa2LLMBackbone, LLMBackbone, MistralLLMBackbone, PhiLLMBackbone
@@ -70,6 +71,11 @@ LLM_BACKBONES = {
 
     # === Phi-2 Backbone ===
     "phi-2-3b": {"cls": PhiLLMBackbone, "kwargs": {}},
+
+    # === Qwen2.5 Backbone ===
+    "qwen25-0_5b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
+    "qwen25-1_5b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
+    "qwen25-3b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
 }
 
 # fmt: on
