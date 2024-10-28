@@ -9,14 +9,16 @@ class QwenPromptBuilder(PromptBuilder):
 
         # Note =>> Qwen Tokenizer is an instance of `Qwen2Tokenizer(Fast)`
         #      =>> By default, there is *no* <BOS> token. we add <EOS> manually.
-        self.bos = "<|im_start|>"  # NOTE this is not used
+        self.bos = self.start = "<|im_start|>"  # NOTE this is not used
         self.eos = "<|endoftext|>"
+
+        self.end = "<|im_end|>"
 
         # Get role-specific "wrap" functions
         #   =>> Note that placement of <bos>/<eos> were based on experiments generating from Phi-2 in Input/Output mode
-        self.wrap_system = lambda msg: f"<|imstart|>system\n{msg}<|im_end|>\n"
-        self.wrap_human = lambda msg: f"<|imstart|>user\n{msg}<|im_end|>\n"
-        self.wrap_gpt = lambda msg: f"<|imstart|>assistant\n{msg if msg != '' else ' '}<|im_end|>\n"
+        self.wrap_system = lambda msg: f"{self.start}system\n{msg}{self.end}\n"
+        self.wrap_human = lambda msg: f"{self.start}user\n{msg}{self.end}\n"
+        self.wrap_gpt = lambda msg: f"{self.start}assistant\n{msg if msg != '' else ' '}{self.end}\n"
 
         # === `self.prompt` gets built up over multiple turns ===
         self.prompt, self.turn_count = "", 0
