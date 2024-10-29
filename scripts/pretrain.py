@@ -91,7 +91,7 @@ class PretrainConfig:
             self.max_grad_norm = self.model.align_max_grad_norm
             self.lr_scheduler_type = self.model.align_lr_scheduler_type
             self.warmup_ratio = self.model.align_warmup_ratio
-            self.save_every_n_steps = self.model.save_every_n_steps
+            self.save_every_n_steps = self.model.align_save_every_n_steps
 
             self.train_strategy = self.model.align_train_strategy
 
@@ -106,7 +106,7 @@ class PretrainConfig:
             self.max_grad_norm = self.model.finetune_max_grad_norm
             self.lr_scheduler_type = self.model.finetune_lr_scheduler_type
             self.warmup_ratio = self.model.finetune_warmup_ratio
-            self.save_every_n_steps = self.model.save_every_n_steps
+            self.save_every_n_steps = self.model.finetune_save_every_n_steps
 
             self.train_strategy = self.model.finetune_train_strategy
 
