@@ -150,10 +150,10 @@ class FinetuneDataset(Dataset[Dict[str, torch.Tensor]]):
             elif isinstance(self.tokenizer, CodeGenTokenizerFast):
                 pass
 
-            # Qwen2 Tokenizer -- no special handling!
+            # Qwen2 Tokenizer -- agent turn requires EOS if its the last turn!
             elif isinstance(self.tokenizer, Qwen2TokenizerFast):
-                pass
-
+                if turn["from"] == "gpt" and turn_idx == len(conversation) - 1:
+                    msg += prompt_builder.eos
             else:
                 raise ValueError(f"Tokenizer of type `{type(self.tokenizer)}` is not explicitly handled!")
 
