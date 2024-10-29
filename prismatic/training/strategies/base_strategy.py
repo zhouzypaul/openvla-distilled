@@ -51,6 +51,7 @@ class TrainingStrategy(ABC):
         reduce_in_full_precision: bool = False,
         mixed_precision_dtype: torch.dtype = torch.bfloat16,
         worker_init_fn: Optional[Callable[[int], None]] = None,
+        save_every_n_steps: Optional[int] = None,
         **_: str,
     ) -> None:
         self.vlm, self.device_id, self.stage = vlm, device_id, stage
@@ -77,6 +78,10 @@ class TrainingStrategy(ABC):
 
         # Optimizers & Scheduler (initialized in `run_setup`)
         self.optimizer, self.lr_scheduler = None, None
+
+        # how often to save checkpoints
+        self.save_every_n_steps = save_every_n_steps
+        assert save_every_n_steps > 0
 
         # Lightweight Validation
         assert (
@@ -230,6 +235,13 @@ class TrainingStrategy(ABC):
                             dist.barrier()
 
                             return
+                        elif (
+                            self.save_every_n_steps is not None
+                            and (metrics.global_step + 1) % self.save_every_n_steps == 0
+                        ):
+
+                            self.save_checkpoint(metrics.run_dir, metrics.global_step, epoch, loss.item())
+                            dist.barrier()
 
                         # Update Progress Bar
                         progress.update()

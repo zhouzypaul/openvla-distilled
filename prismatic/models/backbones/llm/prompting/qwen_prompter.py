@@ -2,10 +2,17 @@ from typing import Optional
 
 from prismatic.models.backbones.llm.prompting.base_prompter import PromptBuilder
 
+SYS_PROMPTS = {
+    "prismatic": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
+    "openvla": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
+}
+
 
 class QwenPromptBuilder(PromptBuilder):
     def __init__(self, model_family: str, system_prompt: Optional[str] = None) -> None:
         super().__init__(model_family, system_prompt)
+
+        self.system_prompt = (SYS_PROMPTS[model_family] if system_prompt is None else self.system_prompt).strip()
 
         # Note =>> Qwen Tokenizer is an instance of `Qwen2Tokenizer(Fast)`
         #      =>> By default, there is *no* <BOS> token. we add <EOS> manually.
@@ -27,8 +34,8 @@ class QwenPromptBuilder(PromptBuilder):
         assert (role == "human") if (self.turn_count % 2 == 0) else (role == "gpt")
         message = message.replace("<image>", "").strip()
 
-        # Special Handling for "first" input --> add a system prompt to the beginning.
-        if self.turn_count == 0:
+        # Special Handling for "first" input --> add an optional system prompt to the beginning.
+        if self.turn_count == 0 and self.system_prompt is not None:
             self.prompt += self.wrap_system(self.system_prompt)
 
         if (self.turn_count % 2) == 0:

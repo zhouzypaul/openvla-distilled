@@ -36,6 +36,7 @@ class ModelConfig(ChoiceRegistry):
     # Align Stage Optimization Parameters
     align_epochs: int                                       # Epochs to Run (in case `max_steps` is not specified)
     align_max_steps: Optional[int]                          # [Optional] Max Gradient Steps (overrides epochs)
+    align_save_every_n_steps: Optional[int]
     align_global_batch_size: int                            # Global Batch Size (divided across processes)
     align_per_device_batch_size: int                        # Per-Device Batch Size (per-process)
                                                             #   => # of accumulation steps is auto-computed
@@ -51,6 +52,7 @@ class ModelConfig(ChoiceRegistry):
     # Finetune Stage Optimization Parameters
     finetune_epochs: int                                    # Epochs to Run (in case `max_steps` is not specified)
     finetune_max_steps: Optional[int]                       # [Optional] Max Gradient Steps (overrides epochs)
+    finetune_save_every_n_steps: Optional[int]
     finetune_global_batch_size: int                         # Global Batch Size (divided across processes)
     finetune_per_device_batch_size: int                     # Per-Device Batch Size (per-process)
                                                             #   => # of accumulation steps is auto-computed
@@ -88,6 +90,7 @@ class LLaVa_v15_Reproduction_7B(ModelConfig):
     # Align Stage Optimization Parameters
     align_epochs: int = 1
     align_max_steps: Optional[int] = None
+    align_save_every_n_steps: int = 10000
     align_global_batch_size: int = 96
     align_per_device_batch_size: int = 16
 
@@ -102,6 +105,7 @@ class LLaVa_v15_Reproduction_7B(ModelConfig):
     # Finetune Stage Optimization Parameters
     finetune_epochs: int = 1
     finetune_max_steps: Optional[int] = None
+    finetune_save_every_n_steps: int = 10000
     finetune_global_batch_size: int = 48
     finetune_per_device_batch_size: int = 8
 

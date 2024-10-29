@@ -91,6 +91,7 @@ class PretrainConfig:
             self.max_grad_norm = self.model.align_max_grad_norm
             self.lr_scheduler_type = self.model.align_lr_scheduler_type
             self.warmup_ratio = self.model.align_warmup_ratio
+            self.save_every_n_steps = self.model.save_every_n_steps
 
             self.train_strategy = self.model.align_train_strategy
 
@@ -105,6 +106,7 @@ class PretrainConfig:
             self.max_grad_norm = self.model.finetune_max_grad_norm
             self.lr_scheduler_type = self.model.finetune_lr_scheduler_type
             self.warmup_ratio = self.model.finetune_warmup_ratio
+            self.save_every_n_steps = self.model.save_every_n_steps
 
             self.train_strategy = self.model.finetune_train_strategy
 
@@ -204,6 +206,7 @@ def pretrain(cfg: PretrainConfig) -> None:
         enable_mixed_precision_training=cfg.model.enable_mixed_precision_training,
         reduce_in_full_precision=cfg.model.reduce_in_full_precision,
         worker_init_fn=worker_init_fn,
+        save_every_n_steps=cfg.model.save_every_n_steps,
     )
     train_strategy.run_setup(run_dir=run_dir, n_train_examples=len(train_dataset))
 
