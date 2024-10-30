@@ -64,9 +64,8 @@ class OpenVLA(PrismaticVLM):
                     (input_ids, torch.unsqueeze(torch.Tensor([29871]).long(), dim=0).to(input_ids.device)), dim=1
                 )
         elif isinstance(tokenizer, Qwen2TokenizerFast):
-            # add the Qwen specific assistant prompt.
-            special_tokens = tokenizer("<|im_start|>assistant\n", return_tensors="pt").input_ids.to(self.device)
-            input_ids = torch.cat((input_ids, special_tokens), dim=1)
+            # do nothing here. I think...
+            pass
         else:
             raise ValueError(f"Unsupported `tokenizer` type = {type(tokenizer)}")
 
@@ -91,6 +90,7 @@ class OpenVLA(PrismaticVLM):
             )
             # fmt: on
 
+        # TODO check does Qwen add some extra tokens??
         # Extract predicted action tokens and translate into (normalized) continuous actions
         predicted_action_token_ids = generated_ids[0, -self.get_action_dim(unnorm_key) :]
         normalized_actions = self.action_tokenizer.decode_token_ids_to_actions(predicted_action_token_ids.cpu().numpy())
