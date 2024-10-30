@@ -81,7 +81,8 @@ class TrainingStrategy(ABC):
 
         # how often to save checkpoints
         self.save_every_n_steps = save_every_n_steps
-        assert save_every_n_steps > 0
+        if save_every_n_steps is not None:
+            assert save_every_n_steps > 0
 
         # Lightweight Validation
         assert (

@@ -94,6 +94,7 @@ class TrainConfig:
         self.warmup_ratio = self.vla.warmup_ratio
 
         self.train_strategy = self.vla.train_strategy
+        self.save_every_n_steps = self.vla.save_every_n_steps
 
         # [Validate] Assert on `expected_world_size`
         assert (
@@ -223,6 +224,7 @@ def train(cfg: TrainConfig) -> None:
         enable_mixed_precision_training=cfg.vla.enable_mixed_precision_training,
         reduce_in_full_precision=cfg.vla.reduce_in_full_precision,
         worker_init_fn=worker_init_fn,
+        save_every_n_steps=cfg.save_every_n_steps,
     )
     train_strategy.run_setup(run_dir=run_dir, n_train_examples=len(vla_dataset))
 
