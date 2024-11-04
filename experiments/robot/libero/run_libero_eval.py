@@ -26,8 +26,9 @@ from typing import Optional, Union
 import draccus
 import numpy as np
 import tqdm
-import wandb
 from libero.libero import benchmark
+
+import wandb
 
 # Append current directory so that interpreter can find experiments.robot
 sys.path.append("../..")
@@ -58,6 +59,7 @@ class GenerateConfig:
     # Model-specific parameters
     #################################################################################################################
     model_family: str = "openvla"                    # Model family
+    hf_token: str = Path(".hf_token")                       # Model family
     pretrained_checkpoint: Union[str, Path] = ""     # Pretrained checkpoint path
     load_in_8bit: bool = False                       # (For OpenVLA only) Load with 8-bit quantization
     load_in_4bit: bool = False                       # (For OpenVLA only) Load with 4-bit quantization
@@ -77,10 +79,11 @@ class GenerateConfig:
     #################################################################################################################
     run_id_note: Optional[str] = None                # Extra note to add in run ID for logging
     local_log_dir: str = "./experiments/logs"        # Local directory for eval logs
+    prefix: str = ''
 
     use_wandb: bool = False                          # Whether to also log results in Weights & Biases
-    wandb_project: str = "YOUR_WANDB_PROJECT"        # Name of W&B project to log to (use default!)
-    wandb_entity: str = "YOUR_WANDB_ENTITY"          # Name of entity to log under
+    wandb_project: str = "prismatic"        # Name of W&B project to log to (use default!)
+    wandb_entity: Optional[str] = None          # Name of entity to log under
 
     seed: int = 7                                    # Random Seed (for reproducibility)
 
@@ -104,7 +107,7 @@ def eval_libero(cfg: GenerateConfig) -> None:
     model = get_model(cfg)
 
     # [OpenVLA] Check that the model contains the action un-normalization key
-    if cfg.model_family == "openvla":
+    if cfg.model_family in ["openvla", "prismatic"]:
         # In some cases, the key must be manually modified (e.g. after training on a modified version of the dataset
         # with the suffix "_no_noops" in the dataset name)
         if cfg.unnorm_key not in model.norm_stats and f"{cfg.unnorm_key}_no_noops" in model.norm_stats:
@@ -117,7 +120,7 @@ def eval_libero(cfg: GenerateConfig) -> None:
         processor = get_processor(cfg)
 
     # Initialize local logging
-    run_id = f"EVAL-{cfg.task_suite_name}-{cfg.model_family}-{DATE_TIME}"
+    run_id = f"{cfg.prefix}EVAL-{cfg.task_suite_name}-{cfg.model_family}-{DATE_TIME}"
     if cfg.run_id_note is not None:
         run_id += f"--{cfg.run_id_note}"
     os.makedirs(cfg.local_log_dir, exist_ok=True)
@@ -221,7 +224,7 @@ def eval_libero(cfg: GenerateConfig) -> None:
 
                     # [OpenVLA] The dataloader flips the sign of the gripper action to align with other datasets
                     # (0 = close, 1 = open), so flip it back (-1 = open, +1 = close) before executing the action
-                    if cfg.model_family == "openvla":
+                    if cfg.model_family in ["openvla", "prismatic"]:
                         action = invert_gripper_action(action)
 
                     # Execute action in environment
@@ -244,6 +247,14 @@ def eval_libero(cfg: GenerateConfig) -> None:
             save_rollout_video(
                 replay_images, total_episodes, success=done, task_description=task_description, log_file=log_file
             )
+
+            # Save the videos to wandb
+            if cfg.use_wandb and (task_successes < 10 or task_episodes - task_successes < 10):
+                group = "success" if done else "failure"
+                idx = task_successes if done else task_episodes - task_successes
+                wandb.log(
+                    {f"{task_description}/{group}/{idx}": wandb.Video(np.array(replay_images).transpose(0, 3, 1, 2))}
+                )
 
             # Log current results
             print(f"Success: {done}")

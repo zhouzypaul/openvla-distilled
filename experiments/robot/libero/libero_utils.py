@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 from libero.libero import get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
+from PIL import Image
 
 from experiments.robot.robot_utils import (
     DATE,
@@ -53,9 +54,12 @@ def get_libero_image(obs, resize_size):
     if isinstance(resize_size, int):
         resize_size = (resize_size, resize_size)
     img = obs["agentview_image"]
-    img = img[::-1, ::-1]  # IMPORTANT: rotate 180 degrees to match train preprocessing
-    img = resize_image(img, resize_size)
-    return img
+    img = np.flipud(img)
+    # img = img[::-1, ::-1]  # IMPORTANT: rotate 180 degrees to match train preprocessing
+    img = Image.fromarray(img)
+    img = img.resize(resize_size, Image.Resampling.LANCZOS)  # resize to size seen at train time
+    img = img.convert("RGB")
+    return np.array(img)
 
 
 def save_rollout_video(rollout_images, idx, success, task_description, log_file=None):
