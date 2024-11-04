@@ -147,6 +147,18 @@ class Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90(Exp_Qwen25_DinoSigLIP_224px_0_5
     per_device_batch_size: int = 32
 
 
+
+@dataclass
+class Exp_DinoSigLIP_224px_LIBERO_90(Exp_DinoSigLIP_224px_Bridge):
+    vla_id: str = "prism-dinosiglip-224px+mx-libero-90"
+
+    data_mix: str = "libero_90"
+
+    expected_world_size: int = 8
+    global_batch_size: int = 256
+    per_device_batch_size: int = 32
+
+
 # = [64 GPU] DINO-SigLIP 224px + OXE Magic Soup++ =
 @dataclass
 class Exp_DinoSigLIP_224px_OXE_Magic_Soup_Plus(Exp_SigLIP_224px_Bridge):
@@ -230,6 +242,7 @@ class VLARegistry(Enum):
     # Sanity Check Configurations =>> BridgeV2
     SIGLIP_224PX_MX_BRIDGE = Exp_SigLIP_224px_Bridge
     DINOSIGLIP_224PX_MX_BRIDGE = Exp_DinoSigLIP_224px_Bridge
+    DINOSIGLIP_224PX_MX_LIBERO_90 = Exp_DinoSigLIP_224px_LIBERO_90
 
     # SigLIP Frozen Backbone Experiment
     FREEZE_SIGLIP_224PX_MX_BRIDGE = Exp_FreezeVIT_SigLIP_224px_Bridge
