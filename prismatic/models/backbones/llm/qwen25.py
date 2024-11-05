@@ -43,6 +43,7 @@ class Qwen25LLMBackbone(HFCausalLLMBackbone):
         hf_token: Optional[str] = None,
         inference_mode: bool = False,
         use_flash_attention_2: bool = True,
+        num_extra_tokens: int = 0,
     ) -> None:
         super().__init__(
             llm_backbone_id,
@@ -52,6 +53,11 @@ class Qwen25LLMBackbone(HFCausalLLMBackbone):
             use_flash_attention_2=use_flash_attention_2,
             **QWEN25_MODELS[llm_backbone_id],
         )
+
+        # add some more special tokens
+        if num_extra_tokens > 0:
+            added = self.tokenizer.add_tokens([f"<|extra_{i}|>" for i in range(num_extra_tokens)])
+            assert added == num_extra_tokens, f"Added {added} of {num_extra_tokens} extra tokens to tokenizer!"
 
         # there is already a special token for Qwen
         # self.tokenizer.add_special_tokens({"pad_token": "<PAD>"})
