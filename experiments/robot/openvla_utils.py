@@ -39,7 +39,12 @@ def get_prismatic_vla(cfg):
     # set_seed(cfg.seed)
     # Load VLA checkpoint.
     print(f"Loading VLM from checkpoint: {cfg.pretrained_checkpoint}")
-    vla = load_vla(cfg.pretrained_checkpoint, hf_token=hf_token, load_for_training=False)
+    vla = load_vla(
+        cfg.pretrained_checkpoint,
+        hf_token=hf_token,
+        load_for_training=False,
+        action_tokenizer=cfg.action_tokenizer if hasattr(cfg, "action_tokenizer") else "action_tokenizer",
+    )
     for param in vla.parameters():
         assert param.dtype == torch.float32, f"Loaded VLM parameter not in full precision: {param}"
     # Cast to half precision.

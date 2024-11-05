@@ -18,7 +18,7 @@ from prismatic.models.registry import GLOBAL_REGISTRY, MODEL_REGISTRY
 from prismatic.models.vlas import OpenVLA
 from prismatic.models.vlms import PrismaticVLM
 from prismatic.overwatch import initialize_overwatch
-from prismatic.vla.action_tokenizer import ActionTokenizer
+from prismatic.vla.action_tokenizer import ACTION_TOKENIZERS, ActionTokenizer
 
 # Initialize Overwatch =>> Wraps `logging.Logger`
 overwatch = initialize_overwatch(__name__)
@@ -208,7 +208,8 @@ def load_vla(
     )
 
     # Create Action Tokenizer
-    action_tokenizer = ActionTokenizer(llm_backbone.get_tokenizer())
+    ac_tokenizer = vla_cfg["action_tokenizer"] if "action_tokenizer" in vla_cfg else "action_tokenizer"
+    action_tokenizer: ActionTokenizer = ACTION_TOKENIZERS[ac_tokenizer](llm_backbone.get_tokenizer())
 
     # Load VLM using `from_pretrained` (clobbers HF syntax... eventually should reconcile)
     overwatch.info(f"Loading VLA [bold blue]{model_cfg.model_id}[/] from Checkpoint")

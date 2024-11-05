@@ -88,6 +88,7 @@ class RLDSDataset(IterableDataset):
         shuffle_buffer_size: int = 256_000,
         train: bool = True,
         image_aug: bool = False,
+        future_action_window_size: int = 0,
     ) -> None:
         """Lightweight wrapper around RLDS TFDS Pipeline for use with PyTorch/OpenVLA Data Loaders."""
         self.data_root_dir, self.data_mix, self.batch_transform = data_root_dir, data_mix, batch_transform
@@ -111,10 +112,10 @@ class RLDSDataset(IterableDataset):
         )
         rlds_config = dict(
             traj_transform_kwargs=dict(
-                window_size=1,                                      # If we wanted to feed / predict more than one step
-                future_action_window_size=0,                        # For action chunking
-                skip_unlabeled=True,                                # Skip trajectories without language labels
-                goal_relabeling_strategy="uniform",                 # Goals are currently unused
+                window_size=1,                                        # If we wanted to feed / predict more than one step
+                future_action_window_size=future_action_window_size,  # For action chunking
+                skip_unlabeled=True,                                  # Skip trajectories without language labels
+                goal_relabeling_strategy="uniform",                   # Goals are currently unused
             ),
             frame_transform_kwargs=dict(
                 resize_size=resize_resolution,

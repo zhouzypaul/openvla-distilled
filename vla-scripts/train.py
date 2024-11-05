@@ -96,6 +96,8 @@ class TrainConfig:
         self.train_strategy = self.vla.train_strategy
         self.save_every_n_steps = self.vla.save_every_n_steps
 
+        self.action_tokenizer = self.vla.action_tokenizer
+
         # [Validate] Assert on `expected_world_size`
         assert (
             self.vla.expected_world_size == overwatch.world_size()
@@ -198,6 +200,7 @@ def train(cfg: TrainConfig) -> None:
         default_image_resolution=vlm.vision_backbone.default_image_resolution,
         shuffle_buffer_size=cfg.vla.shuffle_buffer_size,
         image_aug=cfg.image_aug,
+        action_tokenizer=cfg.action_tokenizer,
     )
 
     # Save dataset statistics for de-normalization at inference time

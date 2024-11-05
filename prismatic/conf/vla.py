@@ -47,6 +47,7 @@ class VLAConfig(ChoiceRegistry):
     warmup_ratio: float                             # Fraction of Steps to Warmup (for warmup LR schedulers)
 
     train_strategy: str                             # Train Strategy (default "fsdp-full-shard")
+    action_tokenizer: str
 
     # Enable Gradient/Activation Checkpointing (for the LLM Backbone)
     enable_gradient_checkpointing: bool = True      # Enable Gradient/Activation Checkpointing during Training
@@ -91,6 +92,7 @@ class Exp_SigLIP_224px_Bridge(VLAConfig):
     warmup_ratio: float = 0.0
 
     train_strategy: str = "fsdp-full-shard"
+    action_tokenizer: str = "action_tokenizer"
 
 
 # = [8 GPU] SigLIP 224px Frozen Vision Backbone + Bridge =
@@ -145,7 +147,6 @@ class Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90(Exp_Qwen25_DinoSigLIP_224px_0_5
     expected_world_size: int = 8
     global_batch_size: int = 256
     per_device_batch_size: int = 32
-
 
 
 @dataclass
