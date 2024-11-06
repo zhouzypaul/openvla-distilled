@@ -18,21 +18,10 @@ from prismatic.overwatch.overwatch import initialize_overwatch
 
 overwatch = initialize_overwatch(__name__)
 
-known_tokenizer_remaps = {
-    Qwen2TokenizerFast: {
-        151554: [25209, 246],
-        151555: [102210],
-        151556: [101427],
-        151560: [5691],
-        151618: [99206, 228],
-        151638: [90674],
-    }
-}
-
 
 class ActionTokenizer:
     def __init__(
-        self, tokenizer: PreTrainedTokenizerBase, bins: int = 256, min_action: int = -1, max_action: int = 1
+            self, tokenizer: PreTrainedTokenizerBase, bins: int = 256, min_action: int = -1, max_action: int = 1, use_extra: bool = False,
     ) -> None:
         """
         Discretizes continuous robot actions into N bins per dimension and maps to the least used tokens.
@@ -44,6 +33,7 @@ class ActionTokenizer:
         :param bins: Number of bins for each continuous value; we'll adopt a uniform binning strategy.
         :param min_action: Minimum action value (for clipping, setting lower bound on bin interval).
         :param max_action: Maximum action value (for clipping, setting upper bound on bin interval).
+        :param use_extra: Use the extra tokens (not just the last ones), only implemented for Qwen2
         """
         self.tokenizer, self.n_bins, self.min_action, self.max_action = tokenizer, bins, min_action, max_action
 
@@ -51,10 +41,16 @@ class ActionTokenizer:
         self.bins = np.linspace(min_action, max_action, self.n_bins)
         self.bin_centers = (self.bins[:-1] + self.bins[1:]) / 2.0
 
+        self.tokenizer_len = self.tokenizer.vocab_size
+        if isinstance(tokenizer, Qwen2TokenizerFast) and use_extra:
+            self.tokenizer_len = len(self.tokenizer)
+        elif use_extra:
+            raise NotImplementedError("Cannot use extra tokens for this tokenizer!")
+
         # [Contract] Set "action_token_begin_idx" based on `self.tokenizer.vocab_size - (self.n_bins + 1)`
         #   =>> Assumes we're always overwriting the final `n_bins` tokens of the vocabulary!
-        self.action_token_begin_idx: int = int(self.tokenizer.vocab_size - (self.n_bins + 1))
-        self.action_token_end_idx: int = int(self.tokenizer.vocab_size)
+        self.action_token_begin_idx: int = int(self.tokenizer_len - (self.n_bins + 1))
+        self.action_token_end_idx: int = int(self.tokenizer_len)
 
     def __call__(self, action: np.ndarray) -> Union[str, List[str]]:
         """Clip & bin actions to *the last `n_bins` tokens* of the vocabulary (e.g., tokenizer.vocab[-256:])."""
@@ -63,9 +59,9 @@ class ActionTokenizer:
 
         # Handle single element vs. batch
         if len(discretized_action.shape) == 1:
-            return self.tokenizer.decode(list(self.tokenizer.vocab_size - discretized_action))
+            return self.tokenizer.decode(list(self.tokenizer_len - discretized_action))
         else:
-            return self.tokenizer.batch_decode((self.tokenizer.vocab_size - discretized_action).tolist())
+            return self.tokenizer.batch_decode((self.tokenizer_len - discretized_action).tolist())
 
     def decode_token_ids_to_actions(self, action_token_ids: np.ndarray) -> np.ndarray:
         """
@@ -83,7 +79,7 @@ class ActionTokenizer:
                     self._bin_centers. Therefore, if i==255, we subtract 1 from it so that it just becomes the index of
                     the last bin center. We implement this simply via clipping between [0, 255 - 1].
         """
-        discretized_actions = self.tokenizer.vocab_size - action_token_ids
+        discretized_actions = self.tokenizer_len - action_token_ids
         discretized_actions = np.clip(discretized_actions - 1, a_min=0, a_max=self.bin_centers.shape[0] - 1)
 
         return self.bin_centers[discretized_actions]
@@ -106,6 +102,7 @@ class VQActionTokenizer(ActionTokenizer):
         tokenizer: PreTrainedTokenizerBase,
         vq_vae_path="",
         device="cpu",
+        use_extra: bool = False,
     ):
         self.tokenizer = tokenizer
         self.device = device
@@ -134,10 +131,17 @@ class VQActionTokenizer(ActionTokenizer):
         ### TOKENIZATION arguments ###
         # number of bins to assign for each "action" dimension
         self.n_bins = self.vq_vae.vqvae_n_embed
+
+        self.tokenizer_len = self.tokenizer.vocab_size
+        if isinstance(tokenizer, Qwen2TokenizerFast) and use_extra:
+            self.tokenizer_len = len(self.tokenizer)
+        elif use_extra:
+            raise NotImplementedError("Cannot use extra tokens for this tokenizer!")
+
         # [Contract] Set "action_token_begin_idx" based on `self.tokenizer.vocab_size - (self.n_bins + 1)`
         #   =>> Assumes we're always overwriting the final `n_bins` tokens of the vocabulary!
-        self.action_token_begin_idx: int = int(self.tokenizer.vocab_size - (self.n_bins + 1))
-        self.action_token_end_idx: int = int(self.tokenizer.vocab_size)
+        self.action_token_begin_idx: int = int(self.tokenizer_len - (self.n_bins + 1))
+        self.action_token_end_idx: int = int(self.tokenizer_len)
 
     def __call__(self, action: np.ndarray) -> Union[str, List[str]]:
         # make sure shape matches (1 x T x A)
@@ -148,11 +152,11 @@ class VQActionTokenizer(ActionTokenizer):
 
         # vq_codes will be between [0, n_bins-1], so we subtract them from vocab_size - 1
         # for example, code 0 maps to vocab_size - 1
-        return self.tokenizer.decode(list(self.tokenizer.vocab_size - 1 - vq_code[0].numpy()))
+        return self.tokenizer.decode(list(self.tokenizer_len - 1 - vq_code[0].numpy()))
 
     def decode_token_ids_to_actions(self, action_token_ids: np.ndarray) -> np.ndarray:
         # first convert from tokens to bins (inverse of what happens in __call__)
-        action_token_ids = self.tokenizer.vocab_size - 1 - action_token_ids
+        action_token_ids = self.tokenizer_len - 1 - action_token_ids
         # these directly correspond to the bins
         action_token_ids = np.clip(action_token_ids, 0, self.n_bins - 1)
         action_token_ids = torch.from_numpy(action_token_ids).to(self.device).reshape(-1, self.vq_vae.vqvae_groups)
@@ -176,7 +180,11 @@ class VQActionTokenizer(ActionTokenizer):
 
 ACTION_TOKENIZERS = {
     "action_tokenizer": ActionTokenizer,
+    "extra_action_tokenizer": partial(ActionTokenizer, use_extra=True),
     "libero_vq_action_tokenizer": partial(
         VQActionTokenizer, vq_vae_path="vq/pretrain_vq+mx-libero_90+fach-7+ng-7+nemb-128+nlatent-512"
+    ),
+    "libero_vq_extra_action_tokenizer": partial(
+        VQActionTokenizer, vq_vae_path="vq/pretrain_vq+mx-libero_90+fach-7+ng-7+nemb-128+nlatent-512", use_extra=True
     ),
 }

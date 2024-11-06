@@ -48,7 +48,6 @@ class RLDSBatchTransform:
  
         tokenized_action = self.action_tokenizer(action)
         raw_action_tokens = self.base_tokenizer(tokenized_action)["input_ids"]
-        print(raw_action_tokens)
 
         # Construct Chat-based Prompt =>> Input is default query + language instruction, output are the action tokens
         prompt_builder = self.prompt_builder_fn("openvla")
@@ -64,8 +63,6 @@ class RLDSBatchTransform:
         labels = list(input_ids)
         # print("----------------------")
         # print(prompt_builder.get_prompt())
-        print(labels[-len(raw_action_tokens)-2:])
-
 
         # Tensorize =>> Run Image Transform to get `pixel_values` =>> Return
         #   =>> IMPORTANT :: IF WE'RE USING HF LLM.forward(..., labels=labels), SHIFTING HAPPENS _INSIDE_ MODEL!

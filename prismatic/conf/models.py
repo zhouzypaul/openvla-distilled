@@ -514,6 +514,13 @@ class Prism_Qwen25_0_5B_DINOSigLIP_224px(Exp_7B_One_Stage):
     llm_max_length: int = 32768
 
 
+#   =>> Note :: Run with `--dataset.type "llava-lvis4v-lrv"`
+@dataclass
+class Prism_Qwen25_0_5B_Extra_DINOSigLIP_224px(Prism_Qwen25_0_5B_DINOSigLIP_224px):
+    model_id: str = "prism-qwen25-extra-dinosiglip-224px+0_5b"
+    llm_backbone_id: str = "qwen25-0_5b-extra"
+
+
 # === Define a Model Registry Enum for Reference & Validation ===
 @unique
 class ModelRegistry(Enum):
@@ -593,6 +600,7 @@ class ModelRegistry(Enum):
 
     # Qwen
     PRISM_QWEN25_DINOSIGLIP_224PX_0_5B = Prism_Qwen25_0_5B_DINOSigLIP_224px
+    PRISM_QWEN25_EXTRA_DINOSIGLIP_224PX_0_5B = Prism_Qwen25_0_5B_Extra_DINOSigLIP_224px
 
     @property
     def model_id(self) -> str:

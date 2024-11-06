@@ -18,6 +18,9 @@ from prismatic.models.backbones.llm.prompting.qwen_prompter import QwenPromptBui
 # fmt: off
 QWEN25_MODELS = {
     # === Pure Qwen2.5 (non-instruct/chat-tuned) Models ===
+    "qwen25-0_5b-extra": {
+        "llm_family": "qwen2.5", "llm_cls": AutoModelForCausalLM, "hf_hub_path": "Qwen/Qwen2.5-0.5B"
+    },
     "qwen25-0_5b-pure": {
         "llm_family": "qwen2.5", "llm_cls": AutoModelForCausalLM, "hf_hub_path": "Qwen/Qwen2.5-0.5B"
     },
@@ -58,6 +61,7 @@ class Qwen25LLMBackbone(HFCausalLLMBackbone):
         if num_extra_tokens > 0:
             added = self.tokenizer.add_tokens([f"<|extra_{i}|>" for i in range(num_extra_tokens)])
             assert added == num_extra_tokens, f"Added {added} of {num_extra_tokens} extra tokens to tokenizer!"
+            print(f"Added {num_extra_tokens} extra tokens.")
 
         # there is already a special token for Qwen
         # self.tokenizer.add_special_tokens({"pad_token": "<PAD>"})
