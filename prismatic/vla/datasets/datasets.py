@@ -42,8 +42,13 @@ class RLDSBatchTransform:
         img = Image.fromarray(rlds_batch["observation"]["image_primary"][0])
         lang = rlds_batch["task"]["language_instruction"].decode().lower()
 
+        # if there is no action horizon, remove it here.
+        if self.action_tokenizer.required_future_horizon == 0:
+            action = action[0]
+ 
         tokenized_action = self.action_tokenizer(action)
         raw_action_tokens = self.base_tokenizer(tokenized_action)["input_ids"]
+        print(raw_action_tokens)
 
         # Construct Chat-based Prompt =>> Input is default query + language instruction, output are the action tokens
         prompt_builder = self.prompt_builder_fn("openvla")
@@ -57,10 +62,10 @@ class RLDSBatchTransform:
         # Tokenize (w/ `base_tokenizer`)
         input_ids = self.base_tokenizer(prompt_builder.get_prompt(), add_special_tokens=True).input_ids
         labels = list(input_ids)
-
         # print("----------------------")
         # print(prompt_builder.get_prompt())
-        # print(input_ids)
+        print(labels[-len(raw_action_tokens)-2:])
+
 
         # Tensorize =>> Run Image Transform to get `pixel_values` =>> Return
         #   =>> IMPORTANT :: IF WE'RE USING HF LLM.forward(..., labels=labels), SHIFTING HAPPENS _INSIDE_ MODEL!
