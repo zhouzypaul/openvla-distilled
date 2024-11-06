@@ -12,9 +12,9 @@ from typing import List, Union
 import numpy as np
 import torch
 from transformers import PreTrainedTokenizerBase
+from transformers.models.qwen2.tokenization_qwen2_fast import Qwen2TokenizerFast
 
 from prismatic.overwatch.overwatch import initialize_overwatch
-from transformers.models.qwen2.tokenization_qwen2_fast import Qwen2TokenizerFast
 
 overwatch = initialize_overwatch(__name__)
 
@@ -28,6 +28,7 @@ known_tokenizer_remaps = {
         151638: [90674],
     }
 }
+
 
 class ActionTokenizer:
     def __init__(
@@ -91,6 +92,11 @@ class ActionTokenizer:
     def vocab_size(self) -> int:
         return self.n_bins
 
+    @property
+    def required_future_horizon(self) -> int:
+        # the number of future action horizon elements
+        return 0
+
 
 class VQActionTokenizer(ActionTokenizer):
     """Loads a torch model (VqVaE) that turns"""
@@ -131,11 +137,10 @@ class VQActionTokenizer(ActionTokenizer):
         # [Contract] Set "action_token_begin_idx" based on `self.tokenizer.vocab_size - (self.n_bins + 1)`
         #   =>> Assumes we're always overwriting the final `n_bins` tokens of the vocabulary!
         self.action_token_begin_idx: int = int(self.tokenizer.vocab_size - (self.n_bins + 1))
-        self.action_token_end_idx: int = int(self.tokenizer.vocab_size) 
+        self.action_token_end_idx: int = int(self.tokenizer.vocab_size)
 
     def __call__(self, action: np.ndarray) -> Union[str, List[str]]:
         # make sure shape matches (1 x T x A)
-        import pdb; pdb.set_trace()
         action = torch.from_numpy(action).to(self.device).reshape((1, self.vq_vae.input_dim_h, self.vq_vae.input_dim_w))
         # action is (1 x T x A), codes will be (1 x GROUPS) each between 0 and BINS-1
         _, vq_code = self.vq_vae.get_code(action)
