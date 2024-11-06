@@ -38,15 +38,18 @@ class RLDSBatchTransform:
 
     def __call__(self, rlds_batch: Dict[str, Any]) -> Dict[str, Any]:
         """Converts a RLDS batch to the format expected by the OpenVLA collator/models."""
-        dataset_name, action = rlds_batch["dataset_name"], rlds_batch["action"][0]
+        dataset_name, action = rlds_batch["dataset_name"], rlds_batch["action"]
         img = Image.fromarray(rlds_batch["observation"]["image_primary"][0])
         lang = rlds_batch["task"]["language_instruction"].decode().lower()
+
+        tokenized_action = self.action_tokenizer(action)
+        raw_action_tokens = self.base_tokenizer(tokenized_action)["input_ids"]
 
         # Construct Chat-based Prompt =>> Input is default query + language instruction, output are the action tokens
         prompt_builder = self.prompt_builder_fn("openvla")
         conversation = [
             {"from": "human", "value": f"What action should the robot take to {lang}?"},
-            {"from": "gpt", "value": self.action_tokenizer(action)},
+            {"from": "gpt", "value": tokenized_action}, 
         ]
         for turn in conversation:
             prompt_builder.add_turn(turn["from"], turn["value"])
@@ -71,7 +74,7 @@ class RLDSBatchTransform:
             num_end_tokens = 2
 
         # [CRITICAL] We do not want to take the loss for anything but the predicted action tokens!
-        labels[: -(len(action) + num_end_tokens)] = IGNORE_INDEX
+        labels[: -(len(raw_action_tokens) + num_end_tokens)] = IGNORE_INDEX
         if not self.predict_stop_token:
             labels[-num_end_tokens:] = IGNORE_INDEX
 

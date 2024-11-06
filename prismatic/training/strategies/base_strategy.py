@@ -326,7 +326,7 @@ class TrainingStrategy(ABC):
                 #   3) Compute masked accuracy as `(preds == logits) & mask` --> sum/divide by # unmasked!
                 action_preds = output.logits[:, self.vlm.vision_backbone.num_patches : -1].argmax(dim=2)
                 action_gt = batch["labels"][:, 1:].to(action_preds.device)
-                mask = action_gt > action_tokenizer.action_token_begin_idx
+                mask = (action_tokenizer.action_token_end_idx > action_gt) & (action_gt > action_tokenizer.action_token_begin_idx)
 
                 # Compute Accuracy
                 correct_preds = (action_preds == action_gt) & mask

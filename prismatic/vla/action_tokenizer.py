@@ -14,9 +14,20 @@ import torch
 from transformers import PreTrainedTokenizerBase
 
 from prismatic.overwatch.overwatch import initialize_overwatch
+from transformers.models.qwen2.tokenization_qwen2_fast import Qwen2TokenizerFast
 
 overwatch = initialize_overwatch(__name__)
 
+known_tokenizer_remaps = {
+    Qwen2TokenizerFast: {
+        151554: [25209, 246],
+        151555: [102210],
+        151556: [101427],
+        151560: [5691],
+        151618: [99206, 228],
+        151638: [90674],
+    }
+}
 
 class ActionTokenizer:
     def __init__(
@@ -42,6 +53,7 @@ class ActionTokenizer:
         # [Contract] Set "action_token_begin_idx" based on `self.tokenizer.vocab_size - (self.n_bins + 1)`
         #   =>> Assumes we're always overwriting the final `n_bins` tokens of the vocabulary!
         self.action_token_begin_idx: int = int(self.tokenizer.vocab_size - (self.n_bins + 1))
+        self.action_token_end_idx: int = int(self.tokenizer.vocab_size)
 
     def __call__(self, action: np.ndarray) -> Union[str, List[str]]:
         """Clip & bin actions to *the last `n_bins` tokens* of the vocabulary (e.g., tokenizer.vocab[-256:])."""
@@ -119,9 +131,11 @@ class VQActionTokenizer(ActionTokenizer):
         # [Contract] Set "action_token_begin_idx" based on `self.tokenizer.vocab_size - (self.n_bins + 1)`
         #   =>> Assumes we're always overwriting the final `n_bins` tokens of the vocabulary!
         self.action_token_begin_idx: int = int(self.tokenizer.vocab_size - (self.n_bins + 1))
+        self.action_token_end_idx: int = int(self.tokenizer.vocab_size) 
 
     def __call__(self, action: np.ndarray) -> Union[str, List[str]]:
         # make sure shape matches (1 x T x A)
+        import pdb; pdb.set_trace()
         action = torch.from_numpy(action).to(self.device).reshape((1, self.vq_vae.input_dim_h, self.vq_vae.input_dim_w))
         # action is (1 x T x A), codes will be (1 x GROUPS) each between 0 and BINS-1
         _, vq_code = self.vq_vae.get_code(action)
@@ -135,12 +149,19 @@ class VQActionTokenizer(ActionTokenizer):
         # first convert from tokens to bins (inverse of what happens in __call__)
         action_token_ids = self.tokenizer.vocab_size - 1 - action_token_ids
         # these directly correspond to the bins
-        action_token_ids = torch.from_numpy(action_token_ids).to(self.device).reshape(1, self.vq_vae.vqvae_groups)
+        action_token_ids = np.clip(action_token_ids, 0, self.n_bins - 1)
+        action_token_ids = torch.from_numpy(action_token_ids).to(self.device).reshape(-1, self.vq_vae.vqvae_groups)
         assert torch.all(action_token_ids >= 0) and torch.all(action_token_ids < self.n_bins)
         # (1 x G) --> (1 x Z_DIM)
         latent = self.vq_vae.draw_code_forward(action_token_ids)
         # --> (1 x A) --> (A,)
-        return self.vq_vae.get_action_from_latent(latent)[0]
+        ret_action = self.vq_vae.get_action_from_latent(latent)
+        if action_token_ids.shape[0] == 1:
+            ret_action = ret_action[0]
+
+        # get the first horizon element of the returned actions (VQ might return an action horizon)
+        # TODO parameterize this
+        return ret_action[:, 0]
 
     @property
     def required_future_horizon(self) -> int:
