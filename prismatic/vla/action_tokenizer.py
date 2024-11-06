@@ -91,6 +91,9 @@ class ActionTokenizer:
     def vocab_size(self) -> int:
         return self.n_bins
 
+    @property
+    def required_future_horizon(self) -> int:
+        return 0
 
 class VQActionTokenizer(ActionTokenizer):
     """Loads a torch model (VqVaE) that turns"""
@@ -135,7 +138,6 @@ class VQActionTokenizer(ActionTokenizer):
 
     def __call__(self, action: np.ndarray) -> Union[str, List[str]]:
         # make sure shape matches (1 x T x A)
-        import pdb; pdb.set_trace()
         action = torch.from_numpy(action).to(self.device).reshape((1, self.vq_vae.input_dim_h, self.vq_vae.input_dim_w))
         # action is (1 x T x A), codes will be (1 x GROUPS) each between 0 and BINS-1
         _, vq_code = self.vq_vae.get_code(action)
