@@ -21,7 +21,12 @@ overwatch = initialize_overwatch(__name__)
 
 class ActionTokenizer:
     def __init__(
-            self, tokenizer: PreTrainedTokenizerBase, bins: int = 256, min_action: int = -1, max_action: int = 1, use_extra: bool = False,
+        self,
+        tokenizer: PreTrainedTokenizerBase,
+        bins: int = 256,
+        min_action: int = -1,
+        max_action: int = 1,
+        use_extra: bool = False,
     ) -> None:
         """
         Discretizes continuous robot actions into N bins per dimension and maps to the least used tokens.
@@ -157,6 +162,7 @@ class VQActionTokenizer(ActionTokenizer):
     def decode_token_ids_to_actions(self, action_token_ids: np.ndarray) -> np.ndarray:
         # first convert from tokens to bins (inverse of what happens in __call__)
         action_token_ids = self.tokenizer_len - 1 - action_token_ids
+        initial_shape = action_token_ids.shape
         # these directly correspond to the bins
         action_token_ids = np.clip(action_token_ids, 0, self.n_bins - 1)
         action_token_ids = torch.from_numpy(action_token_ids).to(self.device).reshape(-1, self.vq_vae.vqvae_groups)
@@ -165,8 +171,10 @@ class VQActionTokenizer(ActionTokenizer):
         latent = self.vq_vae.draw_code_forward(action_token_ids)
         # --> (1 x A) --> (A,)
         ret_action = self.vq_vae.get_action_from_latent(latent)
-        if action_token_ids.shape[0] == 1:
-            ret_action = ret_action[0]
+
+        # reshape to be a flat array if the input was a single action
+        if action_token_ids.shape[0] == 1 and len(initial_shape) == 1:
+            return ret_action[0, 0]
 
         # get the first horizon element of the returned actions (VQ might return an action horizon)
         # TODO parameterize this
