@@ -83,13 +83,15 @@ LLM_BACKBONES = {
 
 
 def get_vision_backbone_and_transform(
-    vision_backbone_id: str, image_resize_strategy: str
+    vision_backbone_id: str,
+    image_resize_strategy: str,
+    image_sequence_len: int,
 ) -> Tuple[VisionBackbone, ImageTransform]:
     """Instantiate a Vision Backbone, returning both the nn.Module wrapper class and default Image Transform."""
     if vision_backbone_id in VISION_BACKBONES:
         vision_cfg = VISION_BACKBONES[vision_backbone_id]
         vision_backbone: VisionBackbone = vision_cfg["cls"](
-            vision_backbone_id, image_resize_strategy, **vision_cfg["kwargs"]
+            vision_backbone_id, image_resize_strategy, image_sequence_len=image_sequence_len, **vision_cfg["kwargs"]
         )
         image_transform = vision_backbone.get_image_transform()
         return vision_backbone, image_transform

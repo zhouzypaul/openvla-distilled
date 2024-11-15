@@ -68,6 +68,8 @@ class Exp_SigLIP_224px_Bridge(VLAConfig):
     vla_id: str = "siglip-224px+mx-bridge"
     base_vlm: Union[str, Path] = "siglip-224px+7b"
 
+    image_sequence_len: int = 1
+
     freeze_vision_backbone: bool = False
     freeze_llm_backbone: bool = False
     unfreeze_last_llm_layer: bool = False
@@ -147,6 +149,12 @@ class Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90(Exp_Qwen25_DinoSigLIP_224px_0_5
     expected_world_size: int = 8
     global_batch_size: int = 256
     per_device_batch_size: int = 32
+
+
+@dataclass
+class Exp_Qwen25_DinoSigLIP_224px_T2_0_5B_LIBERO_90(Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90):
+    vla_id: str = "prism-qwen25-dinosiglip-224px-t2+0_5b+mx-libero-90"
+    image_sequence_len: int = 2
 
 
 @dataclass
@@ -257,6 +265,7 @@ class VLARegistry(Enum):
     # [OpenVLA 0.5B] Qwen backbones
     QWEN25_DINOSIGLIP_224PX_0_5B_MX_OXE_MAGIC_SOUP = Exp_Qwen25_DinoSigLIP_224px_0_5B_OXE_Magic_Soup
     QWEN25_DINOSIGLIP_224PX_0_5B_LIBERO_90 = Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90
+    QWEN25_DINOSIGLIP_224PX_T2_0_5B_LIBERO_90 = Exp_Qwen25_DinoSigLIP_224px_T2_0_5B_LIBERO_90
 
     # === TDROID Fine-tuning Configs ===
     SIGLIP_224PX_MX_TDROID_CARROT_IN_BOWL = Exp_SigLIP_224px_TDROID_CarrotInBowl

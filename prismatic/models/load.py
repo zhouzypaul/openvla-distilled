@@ -54,6 +54,7 @@ def load(
     hf_token: Optional[str] = None,
     cache_dir: Optional[Union[str, Path]] = None,
     load_for_training: bool = False,
+    image_sequence_len: Optional[int] = None,
 ) -> PrismaticVLM:
     """Loads a pretrained PrismaticVLM from either local disk or the HuggingFace Hub."""
     if os.path.isdir(model_id_or_path):
@@ -88,11 +89,18 @@ def load(
         f"             Checkpoint Path =>> [underline]`{checkpoint_pt}`[/]"
     )
 
+    if image_sequence_len is None:
+        if "image_sequence_len" in model_cfg:
+            image_sequence_len = model_cfg["image_sequence_len"]
+        else:
+            image_sequence_len = 1
+
     # Load Vision Backbone
     overwatch.info(f"Loading Vision Backbone [bold]{model_cfg['vision_backbone_id']}[/]")
     vision_backbone, image_transform = get_vision_backbone_and_transform(
         model_cfg["vision_backbone_id"],
         model_cfg["image_resize_strategy"],
+        image_sequence_len,
     )
 
     # Load LLM Backbone --> note `inference_mode = True` by default when calling `load()`
@@ -126,6 +134,7 @@ def load_vla(
     load_for_training: bool = False,
     step_to_load: Optional[int] = None,
     model_type: str = "pretrained",
+    image_sequence_len: Optional[int] = None,
 ) -> OpenVLA:
     """Loads a pretrained OpenVLA from either local disk or the HuggingFace Hub."""
 
@@ -191,11 +200,18 @@ def load_vla(
         f"             Checkpoint Path =>> [underline]`{checkpoint_pt}`[/]"
     )
 
+    if image_sequence_len is None:
+        if model_cfg.hasattr("image_sequence_len"):
+            image_sequence_len = model_cfg.image_sequence_len
+        else:
+            image_sequence_len = 1
+
     # Load Vision Backbone
     overwatch.info(f"Loading Vision Backbone [bold]{model_cfg.vision_backbone_id}[/]")
     vision_backbone, image_transform = get_vision_backbone_and_transform(
         model_cfg.vision_backbone_id,
         model_cfg.image_resize_strategy,
+        image_sequence_len,
     )
 
     # Load LLM Backbone --> note `inference_mode = True` by default when calling `load()`

@@ -29,6 +29,7 @@ class ModelConfig(ChoiceRegistry):
     # Backbone Parameters
     image_resize_strategy: str                              # Resizing strategy in < crop | letterbox | corner-pad >
     llm_max_length: int                                     # Maximum context length for LLM (can be < than max!)
+    image_sequence_len: int                                 # Sequence length to use for the vision backbone
 
     # === Multi-Stage Optimization Hyperparameters ===
     # By default, we assume an AdamW optimizer with FSDP (Gradient Sharding or Full Sharding depending on stage)
@@ -86,6 +87,7 @@ class LLaVa_v15_Reproduction_7B(ModelConfig):
 
     image_resize_strategy: str = "letterbox"
     llm_max_length: int = 2048
+    image_sequence_len: int = 1
 
     # Align Stage Optimization Parameters
     align_epochs: int = 1

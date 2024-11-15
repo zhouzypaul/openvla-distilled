@@ -35,17 +35,23 @@ class RLDSBatchTransform:
     image_transform: ImageTransform
     prompt_builder_fn: Type[PromptBuilder]
     predict_stop_token: bool = True
+    image_window_size: int = 1
 
     def __call__(self, rlds_batch: Dict[str, Any]) -> Dict[str, Any]:
         """Converts a RLDS batch to the format expected by the OpenVLA collator/models."""
         dataset_name, action = rlds_batch["dataset_name"], rlds_batch["action"]
-        img = Image.fromarray(rlds_batch["observation"]["image_primary"][0])
         lang = rlds_batch["task"]["language_instruction"].decode().lower()
 
         # if there is no action horizon, remove it here.
         if self.action_tokenizer.required_future_horizon == 0:
             action = action[0]
- 
+
+        # either a single or multi image, depending on image_window_size
+        if self.image_window_size == 1:
+            img = Image.fromarray(rlds_batch["observation"]["image_primary"][0])
+        else:
+            img = [Image.fromarray(rlds_batch["observation"]["image_primary"][t]) for t in range(self.image_window_size)]
+
         tokenized_action = self.action_tokenizer(action)
         raw_action_tokens = self.base_tokenizer(tokenized_action)["input_ids"]
 
@@ -53,7 +59,7 @@ class RLDSBatchTransform:
         prompt_builder = self.prompt_builder_fn("openvla")
         conversation = [
             {"from": "human", "value": f"What action should the robot take to {lang}?"},
-            {"from": "gpt", "value": tokenized_action}, 
+            {"from": "gpt", "value": tokenized_action},
         ]
         for turn in conversation:
             prompt_builder.add_turn(turn["from"], turn["value"])
@@ -94,6 +100,7 @@ class RLDSDataset(IterableDataset):
         train: bool = True,
         image_aug: bool = False,
         future_action_window_size: int = 0,
+        image_window_size: int = 1,
     ) -> None:
         """Lightweight wrapper around RLDS TFDS Pipeline for use with PyTorch/OpenVLA Data Loaders."""
         self.data_root_dir, self.data_mix, self.batch_transform = data_root_dir, data_mix, batch_transform
@@ -117,7 +124,7 @@ class RLDSDataset(IterableDataset):
         )
         rlds_config = dict(
             traj_transform_kwargs=dict(
-                window_size=1,                                        # If we wanted to feed / predict more than one step
+                window_size=image_window_size,                        # If we wanted to feed / predict more than one step
                 future_action_window_size=future_action_window_size,  # For action chunking
                 skip_unlabeled=True,                                  # Skip trajectories without language labels
                 goal_relabeling_strategy="uniform",                   # Goals are currently unused

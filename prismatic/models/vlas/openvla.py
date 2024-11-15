@@ -5,11 +5,11 @@ PyTorch Module defining OpenVLA as a lightweight wrapper around a PrismaticVLM; 
 discretizing actions with the ActionTokenizer.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL.Image import Image as Img
 from transformers import LlamaTokenizerFast
 from transformers.models.qwen2.tokenization_qwen2_fast import Qwen2TokenizerFast
 
@@ -35,7 +35,7 @@ class OpenVLA(PrismaticVLM):
 
     @torch.inference_mode()
     def predict_action(
-        self, image: Image, instruction: str, unnorm_key: Optional[str] = None, **kwargs: str
+        self, image: Union[Img, List[Img]], instruction: str, unnorm_key: Optional[str] = None, **kwargs: str
     ) -> np.ndarray:
         """
         Core function for VLA inference; maps input image and task instruction to continuous action (de-tokenizes).
@@ -84,7 +84,7 @@ class OpenVLA(PrismaticVLM):
             # fmt: off
             generated_ids = super(PrismaticVLM, self).generate(
                 input_ids=input_ids,                            # Shape: [1, seq]
-                pixel_values=pixel_values,                      # Shape: [1, 3, res, res] or Dict[str, ...]
+                pixel_values=pixel_values,                      # Shape: [1, (opt T,) 3, res, res] or Dict[str, ...]
                 max_new_tokens=self.get_action_dim(unnorm_key),
                 **kwargs
             )

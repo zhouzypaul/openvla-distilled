@@ -13,6 +13,7 @@ from transformers import PreTrainedTokenizerBase
 
 from prismatic.models.backbones.llm.prompting import PromptBuilder
 from prismatic.models.backbones.vision import ImageTransform
+from prismatic.models.backbones.vision.base_vision import WrapSequenceImageTransform
 from prismatic.util.data_utils import PaddedCollatorForActionPrediction
 from prismatic.vla.action_tokenizer import ACTION_TOKENIZERS, ActionTokenizer
 from prismatic.vla.datasets import EpisodicRLDSDataset, RLDSBatchTransform, RLDSDataset
@@ -33,14 +34,26 @@ def get_vla_dataset_and_collator(
     image_aug: bool = False,
     action_tokenizer: str = "action_tokenizer",
     future_action_window_size: int = 0,
+    image_window_size: int = 1,
 ) -> Tuple[Dataset, ActionTokenizer, PaddedCollatorForActionPrediction]:
     """Initialize RLDS Dataset (wraps TFDS), ActionTokenizer, and initialize transform/collation functions."""
 
     action_tokenizer: ActionTokenizer = ACTION_TOKENIZERS[action_tokenizer](tokenizer)
+
+    # get the future action window needed from the tokenizer
     future_action_window_size = max(action_tokenizer.required_future_horizon, future_action_window_size)
 
+    # get the observation history from the image_transform (only needed if its a WrapSequence transform)
+    if isinstance(image_transform, WrapSequenceImageTransform):
+        image_window_size = max(image_transform.sequence_len, image_window_size)
+
     batch_transform = RLDSBatchTransform(
-        action_tokenizer, tokenizer, image_transform, prompt_builder_fn, predict_stop_token=predict_stop_token
+        action_tokenizer,
+        tokenizer,
+        image_transform,
+        prompt_builder_fn,
+        predict_stop_token=predict_stop_token,
+        image_window_size=image_window_size,
     )
     collator = PaddedCollatorForActionPrediction(
         tokenizer.model_max_length, tokenizer.pad_token_id, padding_side=padding_side
@@ -57,6 +70,7 @@ def get_vla_dataset_and_collator(
         train=train,
         image_aug=image_aug,
         future_action_window_size=future_action_window_size,
+        image_window_size=image_window_size,
     )
 
     return dataset, action_tokenizer, collator
