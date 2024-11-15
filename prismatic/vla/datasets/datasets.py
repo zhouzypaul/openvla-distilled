@@ -44,7 +44,10 @@ class RLDSBatchTransform:
 
         # if there is no action horizon, remove it here.
         if self.action_tokenizer.required_future_horizon == 0:
-            action = action[0]
+            action = action[-1]
+        else:
+            # get the last FH + 1 actions (current action + future ones) if required
+            action = action[-self.action_tokenizer.required_future_horizon - 1:]
 
         # either a single or multi image, depending on image_window_size
         if self.image_window_size == 1:
