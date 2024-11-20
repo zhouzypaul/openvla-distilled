@@ -36,6 +36,7 @@ class RLDSBatchTransform:
     prompt_builder_fn: Type[PromptBuilder]
     predict_stop_token: bool = True
     image_window_size: int = 1
+    use_wrist_image: bool = False
 
     def __call__(self, rlds_batch: Dict[str, Any]) -> Dict[str, Any]:
         """Converts a RLDS batch to the format expected by the OpenVLA collator/models."""
@@ -47,13 +48,21 @@ class RLDSBatchTransform:
             action = action[-1]
         else:
             # get the last FH + 1 actions (current action + future ones) if required
-            action = action[-self.action_tokenizer.required_future_horizon - 1:]
+            action = action[-self.action_tokenizer.required_future_horizon - 1 :]
 
         # either a single or multi image, depending on image_window_size
         if self.image_window_size == 1:
             img = Image.fromarray(rlds_batch["observation"]["image_primary"][0])
+            if self.use_wrist_image:
+                img = [img, Image.fromarray(rlds_batch["observation"]["image_wrist"][0])]
         else:
             img = [Image.fromarray(rlds_batch["observation"]["image_primary"][t]) for t in range(self.image_window_size)]
+            if self.use_wrist_image:
+                # wrist images are interleaved
+                wrist_img = [
+                    Image.fromarray(rlds_batch["observation"]["image_wrist"][t]) for t in range(self.image_window_size)
+                ]
+                img = [val for tup in zip(img, wrist_img) for val in tup]
 
         tokenized_action = self.action_tokenizer(action)
         raw_action_tokens = self.base_tokenizer(tokenized_action)["input_ids"]
@@ -104,6 +113,7 @@ class RLDSDataset(IterableDataset):
         image_aug: bool = False,
         future_action_window_size: int = 0,
         image_window_size: int = 1,
+        load_camera_views: tuple = ("primary",),
     ) -> None:
         """Lightweight wrapper around RLDS TFDS Pipeline for use with PyTorch/OpenVLA Data Loaders."""
         self.data_root_dir, self.data_mix, self.batch_transform = data_root_dir, data_mix, batch_transform
@@ -119,7 +129,7 @@ class RLDSDataset(IterableDataset):
         per_dataset_kwargs, weights = get_oxe_dataset_kwargs_and_weights(
             self.data_root_dir,
             mixture_spec,
-            load_camera_views=("primary",),
+            load_camera_views=load_camera_views,
             load_depth=False,
             load_proprio=False,
             load_language=True,

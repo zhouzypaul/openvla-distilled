@@ -49,6 +49,9 @@ class VLAConfig(ChoiceRegistry):
     train_strategy: str                             # Train Strategy (default "fsdp-full-shard")
     action_tokenizer: str
 
+    image_sequence_len: int
+    use_wrist_image: bool
+
     # Enable Gradient/Activation Checkpointing (for the LLM Backbone)
     enable_gradient_checkpointing: bool = True      # Enable Gradient/Activation Checkpointing during Training
 
@@ -69,6 +72,7 @@ class Exp_SigLIP_224px_Bridge(VLAConfig):
     base_vlm: Union[str, Path] = "siglip-224px+7b"
 
     image_sequence_len: int = 1
+    use_wrist_image: bool = False
 
     freeze_vision_backbone: bool = False
     freeze_llm_backbone: bool = False
@@ -155,6 +159,28 @@ class Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90(Exp_Qwen25_DinoSigLIP_224px_0_5
 class Exp_Qwen25_DinoSigLIP_224px_T2_0_5B_LIBERO_90(Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90):
     vla_id: str = "prism-qwen25-dinosiglip-224px-t2+0_5b+mx-libero-90"
     image_sequence_len: int = 2
+
+
+@dataclass
+class Exp_Qwen25_DinoSigLIP_224px_wrist_0_5B_LIBERO_90(Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90):
+    vla_id: str = "prism-qwen25-dinosiglip-224px-wrist+0_5b+mx-libero-90"
+    image_sequence_len: int = 2
+    use_wrist_image: bool = True
+
+
+## bridge Qwen
+
+
+@dataclass
+class Exp_Qwen25_DinoSigLIP_224px_0_5B_Bridge(Exp_SigLIP_224px_Bridge):
+    vla_id: str = "prism-qwen25-dinosiglip-224px+0_5b+mx-bridge"
+    base_vlm: Union[str, Path] = "prism-qwen25-dinosiglip-224px+0_5b"
+
+    data_mix: str = "bridge_dataset"  # direct dataset
+
+    expected_world_size: int = 8
+    global_batch_size: int = 256
+    per_device_batch_size: int = 32
 
 
 @dataclass
@@ -266,6 +292,9 @@ class VLARegistry(Enum):
     QWEN25_DINOSIGLIP_224PX_0_5B_MX_OXE_MAGIC_SOUP = Exp_Qwen25_DinoSigLIP_224px_0_5B_OXE_Magic_Soup
     QWEN25_DINOSIGLIP_224PX_0_5B_LIBERO_90 = Exp_Qwen25_DinoSigLIP_224px_0_5B_LIBERO_90
     QWEN25_DINOSIGLIP_224PX_T2_0_5B_LIBERO_90 = Exp_Qwen25_DinoSigLIP_224px_T2_0_5B_LIBERO_90
+    QWEN25_DINOSIGLIP_224PX_WRIST_0_5B_LIBERO_90 = Exp_Qwen25_DinoSigLIP_224px_wrist_0_5B_LIBERO_90
+
+    QWEN25_DINOSIGLIP_224PX_0_5B_BRIDGE = Exp_Qwen25_DinoSigLIP_224px_0_5B_Bridge
 
     # === TDROID Fine-tuning Configs ===
     SIGLIP_224PX_MX_TDROID_CARROT_IN_BOWL = Exp_SigLIP_224px_TDROID_CarrotInBowl
