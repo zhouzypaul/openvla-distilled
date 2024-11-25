@@ -295,10 +295,10 @@ class VLAMetrics:
 
         # Generic Keyword Arguments
         for key, value in kwargs.items():
-            if key == "loss":
+            if  "loss" in key:
                 loss_val = value.detach()
-                self.state["loss_raw"].append(loss_val)
-                self.state["loss"].append(loss_val)
+                self.state[f"{key}_raw"].append(loss_val)
+                self.state[key].append(loss_val)
             else:
                 self.state[key].append(value.detach())
 
@@ -310,6 +310,11 @@ class VLAMetrics:
         # Note :: Raw Loss is an Average over Gradient Accumulation Steps --> No Smoothing!
         loss_raw = torch.stack(list(self.state["loss_raw"])).mean().item()
         loss = torch.stack(list(self.state["loss"])).mean().item()
+        
+        # added 
+        student_loss = torch.stack(list(self.state["student_loss"])).mean().item()
+        logits_loss = torch.stack(list(self.state["logits_loss"])).mean().item()
+        
         l1_loss = torch.stack(list(self.state["l1_loss"])).mean().item()
         action_accuracy = torch.stack(list(self.state["action_accuracy"])).mean().item()
         step_time, lr = np.mean(list(self.state["step_time"])), self.state["lr"][-1]
@@ -334,6 +339,11 @@ class VLAMetrics:
                 f"{prefix}/Epoch": self.epoch,
                 f"{prefix}/Loss": loss,
                 f"{prefix}/L1 Loss": l1_loss,
+                
+                # added
+                f"{prefix}/Student Loss": student_loss,
+                f"{prefix}/Logits Loss": logits_loss,
+                
                 f"{prefix}/Action Token Accuracy": action_accuracy,
                 f"{prefix}/Loss (Raw)": loss_raw,
                 f"{prefix}/Learning Rate": lr,

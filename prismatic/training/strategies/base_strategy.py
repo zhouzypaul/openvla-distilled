@@ -15,6 +15,8 @@ from typing import Callable, Optional
 import torch
 import torch.distributed as dist
 from torch.utils.data import DataLoader, Dataset, DistributedSampler, IterableDataset
+import torch.nn as nn
+import torch.nn.functional as F
 from tqdm import tqdm
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
@@ -307,10 +309,33 @@ class TrainingStrategy(ABC):
                         pixel_values=batch["pixel_values"],
                         labels=batch["labels"],
                     )
-                    loss = output.loss
+                    student_loss = output.loss
+                    
+                    # Adding distillation
+                    teacher_logits = batch["logits"]
+                    student_logits = output.logits
+                    assert teacher_logits.shape.size() == student_logits.shape.size()
+                    
+                    # hyperparams 
+                    # from: https://www.philschmid.de/knowledge-distillation-bert-transformers
+                    temperature = 4.0  # hard coded, smoothing funciton (can also try 2.0)
+                    alpha = 0.5  # hard coded, weight of student loss
+                    
+                    # soften probabilities and compute distillation loss
+                    loss_function = nn.KLDivLoss(reduction='batchmean')
+                    loss_logits = loss_function(
+                        F.log_softmax(student_logits / temperature, dim=-1),
+                        F.softmax(teacher_logits / temperature, dim=-1)
+                    ) * (temperature ** 2)
+                    # Return weighted student loss
+                    loss = alpha * student_loss + (1. - alpha) * loss_logits
 
                 # Commit Loss =>> Backward!
-                metrics.commit(loss=loss)
+                metrics.commit(
+                    loss=loss,
+                    student_loss=student_loss,
+                    logits_loss=loss_logits,
+                )
                 loss.backward()
 
                 # === Compute Action Token Accuracy & L1 Loss ===
