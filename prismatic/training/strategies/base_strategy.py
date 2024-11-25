@@ -312,23 +312,28 @@ class TrainingStrategy(ABC):
                     student_loss = output.loss
                     
                     # Adding distillation
-                    teacher_logits = batch["logits"]
-                    student_logits = output.logits
-                    assert teacher_logits.shape.size() == student_logits.shape.size()
-                    
-                    # hyperparams 
-                    # from: https://www.philschmid.de/knowledge-distillation-bert-transformers
-                    temperature = 4.0  # hard coded, smoothing funciton (can also try 2.0)
-                    alpha = 0.5  # hard coded, weight of student loss
-                    
-                    # soften probabilities and compute distillation loss
-                    loss_function = nn.KLDivLoss(reduction='batchmean')
-                    loss_logits = loss_function(
-                        F.log_softmax(student_logits / temperature, dim=-1),
-                        F.softmax(teacher_logits / temperature, dim=-1)
-                    ) * (temperature ** 2)
-                    # Return weighted student loss
-                    loss = alpha * student_loss + (1. - alpha) * loss_logits
+                    if "logits" in batch:
+                        teacher_logits = batch["logits"]
+                        student_logits = output.logits
+                        assert teacher_logits.shape.size() == student_logits.shape.size()
+                        
+                        # hyperparams 
+                        # from: https://www.philschmid.de/knowledge-distillation-bert-transformers
+                        temperature = 4.0  # hard coded, smoothing funciton (can also try 2.0)
+                        alpha = 0.5  # hard coded, weight of student loss
+                        
+                        # soften probabilities and compute distillation loss
+                        loss_function = nn.KLDivLoss(reduction='batchmean')
+                        loss_logits = loss_function(
+                            F.log_softmax(student_logits / temperature, dim=-1),
+                            F.softmax(teacher_logits / temperature, dim=-1)
+                        ) * (temperature ** 2)
+                        # Return weighted student loss
+                        loss = alpha * student_loss + (1. - alpha) * loss_logits
+                    else:
+                        # no distillation, training from scratch
+                        loss = student_loss
+                        loss_logits = 0. * student_loss
 
                 # Commit Loss =>> Backward!
                 metrics.commit(
