@@ -49,7 +49,7 @@ class TrainConfig:
 
     # VLAConfig (`prismatic/conf/vla.py`); override with --vla.type `VLARegistry.<VLA>.vla_id`
     vla: VLAConfig = field(
-        default_factory=VLAConfig.get_choice_class(VLARegistry.DINOSIGLIP_224PX_MX_OXE_MAGIC_SOUP_PLUS.vla_id)
+        default_factory=VLAConfig.get_choice_class(VLARegistry.QWEN25_DINOSIGLIP_224PX_0_5B_BRIDGE.vla_id)
     )
 
     # Directory Paths
@@ -77,7 +77,7 @@ class TrainConfig:
 
     # Tracking Parameters
     trackers: Tuple[str, ...] = ("jsonl", "wandb")                  # Trackers to initialize (if W&B, add config!)
-    wandb_project: str = "prismatic"                                  # Name of W&B project to log to (use default!)
+    wandb_project: str = "vla-distillation"                                  # Name of W&B project to log to (use default!)
     wandb_entity: str = None                          # Name of entity to log under
 
     def __post_init__(self) -> None:
