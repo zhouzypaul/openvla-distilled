@@ -244,6 +244,11 @@ class VLAMetrics:
         self.state = {
             "loss_raw": deque(maxlen=grad_accumulation_steps),
             "loss": deque(maxlen=window_size),
+            
+            # added
+            "student_loss": deque(maxlen=window_size),
+            "logits_loss": deque(maxlen=window_size),
+
             "l1_loss": deque(maxlen=window_size),
             "action_accuracy": deque(maxlen=window_size),
             "step_time": deque(maxlen=window_size),
@@ -295,10 +300,10 @@ class VLAMetrics:
 
         # Generic Keyword Arguments
         for key, value in kwargs.items():
-            if  "loss" in key:
+            if key == "loss":
                 loss_val = value.detach()
-                self.state[f"{key}_raw"].append(loss_val)
-                self.state[key].append(loss_val)
+                self.state["loss_raw"].append(loss_val)
+                self.state["loss"].append(loss_val)
             else:
                 self.state[key].append(value.detach())
 
