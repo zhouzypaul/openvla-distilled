@@ -42,6 +42,7 @@ class RLDSBatchTransform:
         """Converts a RLDS batch to the format expected by the OpenVLA collator/models."""
         dataset_name, action = rlds_batch["dataset_name"], rlds_batch["action"]
         lang = rlds_batch["task"]["language_instruction"].decode().lower()
+        action_logits = torch.from_numpy(rlds_batch["logits"])
 
         # if there is no action horizon, remove it here.
         if self.action_tokenizer.required_future_horizon == 0:
@@ -93,12 +94,15 @@ class RLDSBatchTransform:
             # Qwen has <|im_end|><|endoftext|> for example
             num_end_tokens = 2
 
+        logits = torch.zeros([len(input_ids), 321], dtype=torch.float32)
+        logits[-(len(action_logits)+num_end_tokens):-num_end_tokens] = action_logits
+
         # [CRITICAL] We do not want to take the loss for anything but the predicted action tokens!
         labels[: -(len(raw_action_tokens) + num_end_tokens)] = IGNORE_INDEX
         if not self.predict_stop_token:
             labels[-num_end_tokens:] = IGNORE_INDEX
 
-        return dict(pixel_values=pixel_values, input_ids=input_ids, labels=labels, dataset_name=dataset_name)
+        return dict(pixel_values=pixel_values, input_ids=input_ids, labels=labels, logits=logits, dataset_name=dataset_name)
 
 
 class RLDSDataset(IterableDataset):

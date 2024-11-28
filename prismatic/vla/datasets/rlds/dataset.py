@@ -9,6 +9,8 @@ import inspect
 import json
 from functools import partial
 from typing import Callable, Dict, List, Optional, Tuple, Union
+import glob
+import os
 
 import dlimp as dl
 import numpy as np
@@ -128,6 +130,26 @@ def make_dataset_from_rlds(
     if language_key is not None:
         REQUIRED_KEYS.add(language_key)
 
+    print("Building the logits dict...")
+    paths = glob.glob(os.path.join(data_dir, "logits", "*.npz"))
+    keys = []
+    values = []
+    for p in paths:
+        data = np.load(p)
+        for k in data:
+            keys += [k] * len(data[k])
+            values += list(data[k].reshape(len(data[k]), -1))
+
+    logits_dict = tf.lookup.experimental.DenseHashTable(
+        key_dtype=tf.string,
+        value_dtype=tf.float32,
+        default_value=tf.zeros(7 * 321, dtype=tf.float32),
+        empty_key="<empty>",
+        deleted_key="<deleted>",
+    )
+    logits_dict.insert(keys, values)
+    print("Done building the logits dict.")
+
     def restructure(traj):
         # apply a standardization function, if provided
         if standardize_fn is not None:
@@ -179,11 +201,21 @@ def make_dataset_from_rlds(
                 )
             task["language_instruction"] = traj.pop(language_key)
 
+        file_name = traj["traj_metadata"]["episode_metadata"]["file_path"][0]
+        episode_id = traj["traj_metadata"]["episode_metadata"]["episode_id"][0]
+
+        file_names = tf.repeat(file_name, traj_len)
+        episode_ids = tf.as_string(tf.repeat(episode_id, traj_len))
+        indices = tf.as_string(tf.range(traj_len))
+        logits = logits_dict.lookup(file_names + "_" + episode_ids + "_" + indices)
+        logits = tf.reshape(logits, [traj_len, 7, 321])
+
         traj = {
             "observation": new_obs,
             "task": task,
             "action": tf.cast(traj["action"], tf.float32),
             "dataset_name": tf.repeat(name, traj_len),
+            "logits": logits,
         }
 
         if absolute_action_mask is not None:
