@@ -55,6 +55,7 @@ def make_dataset_from_rlds(
     action_normalization_mask: Optional[List[bool]] = None,
     num_parallel_reads: int = tf.data.AUTOTUNE,
     num_parallel_calls: int = tf.data.AUTOTUNE,
+    add_logits: bool = True,
 ) -> Tuple[dl.DLataset, dict]:
     """
     This function is responsible for loading a specific RLDS dataset from storage and getting it into a standardized
@@ -130,25 +131,26 @@ def make_dataset_from_rlds(
     if language_key is not None:
         REQUIRED_KEYS.add(language_key)
 
-    print("Building the logits dict...")
-    paths = glob.glob(os.path.join(data_dir, "logits", "*.npz"))
-    keys = []
-    values = []
-    for p in paths:
-        data = np.load(p)
-        for k in data:
-            keys += [k] * len(data[k])
-            values += list(data[k].reshape(len(data[k]), -1))
+    if add_logits:
+        print("Building the logits dict...")
+        paths = glob.glob(os.path.join(data_dir, "logits", "*.npz"))
+        keys = []
+        values = []
+        for p in paths:
+            data = np.load(p)
+            for k in data:
+                keys += [k] * len(data[k])
+                values += list(data[k].reshape(len(data[k]), -1))
 
-    logits_dict = tf.lookup.experimental.DenseHashTable(
-        key_dtype=tf.string,
-        value_dtype=tf.float32,
-        default_value=tf.zeros(7 * 321, dtype=tf.float32),
-        empty_key="<empty>",
-        deleted_key="<deleted>",
-    )
-    logits_dict.insert(keys, values)
-    print("Done building the logits dict.")
+        logits_dict = tf.lookup.experimental.DenseHashTable(
+            key_dtype=tf.string,
+            value_dtype=tf.float32,
+            default_value=np.ones((7 * 321,), dtype=np.float32) * np.inf,
+            empty_key="<empty>",
+            deleted_key="<deleted>",
+        )
+        logits_dict.insert(keys, values)
+        print("Done building the logits dict.")
 
     def restructure(traj):
         # apply a standardization function, if provided
@@ -204,19 +206,20 @@ def make_dataset_from_rlds(
         file_name = traj["traj_metadata"]["episode_metadata"]["file_path"][0]
         episode_id = traj["traj_metadata"]["episode_metadata"]["episode_id"][0]
 
-        file_names = tf.repeat(file_name, traj_len)
-        episode_ids = tf.as_string(tf.repeat(episode_id, traj_len))
-        indices = tf.as_string(tf.range(traj_len))
-        logits = logits_dict.lookup(file_names + "_" + episode_ids + "_" + indices)
-        logits = tf.reshape(logits, [traj_len, 7, 321])
-
         traj = {
             "observation": new_obs,
             "task": task,
             "action": tf.cast(traj["action"], tf.float32),
             "dataset_name": tf.repeat(name, traj_len),
-            "logits": logits,
         }
+
+        if add_logits:
+            file_names = tf.repeat(file_name, traj_len)
+            episode_ids = tf.as_string(tf.repeat(episode_id, traj_len))
+            indices = tf.as_string(tf.range(traj_len))
+            logits = logits_dict.lookup(file_names + "_" + episode_ids + "_" + indices)
+            logits = tf.reshape(logits, [traj_len, 7, 321])
+            traj["logits"] = logits
 
         if absolute_action_mask is not None:
             if len(absolute_action_mask) != traj["action"].shape[-1]:
@@ -473,6 +476,7 @@ def make_single_dataset(
     """
     dataset, dataset_statistics = make_dataset_from_rlds(
         **dataset_kwargs,
+        add_logits=False,
         train=train,
     )
     dataset = apply_trajectory_transforms(dataset, **traj_transform_kwargs, train=train)
@@ -539,7 +543,7 @@ def make_interleaved_dataset(
         data_kwargs = copy.deepcopy(dataset_kwargs)
         if "dataset_frame_transform_kwargs" in data_kwargs:
             data_kwargs.pop("dataset_frame_transform_kwargs")
-        _, dataset_statistics = make_dataset_from_rlds(**data_kwargs, train=train)
+        _, dataset_statistics = make_dataset_from_rlds(**data_kwargs, add_logits=False, train=train)
         dataset_sizes.append(dataset_statistics["num_transitions"])
         all_dataset_statistics[dataset_kwargs["name"]] = dataset_statistics
 
