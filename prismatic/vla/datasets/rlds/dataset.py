@@ -139,7 +139,7 @@ def make_dataset_from_rlds(
         for p in paths:
             data = np.load(p)
             for k in data:
-                keys += [k] * len(data[k])
+                keys += [k + "_" + str(i) for i in range(len(data[k]))]
                 values += list(data[k].reshape(len(data[k]), -1))
 
         logits_dict = tf.lookup.experimental.DenseHashTable(
