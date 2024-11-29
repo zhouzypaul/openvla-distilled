@@ -42,7 +42,7 @@ class RLDSBatchTransform:
         """Converts a RLDS batch to the format expected by the OpenVLA collator/models."""
         dataset_name, action = rlds_batch["dataset_name"], rlds_batch["action"]
         lang = rlds_batch["task"]["language_instruction"].decode().lower()
-        action_logits = torch.from_numpy(rlds_batch["logits"])
+        action_logits = torch.tensor(rlds_batch["logits"])
 
         # if there is no action horizon, remove it here.
         if self.action_tokenizer.required_future_horizon == 0:
@@ -99,10 +99,7 @@ class RLDSBatchTransform:
         # set the logits for the action tokens
         logits[
             -(len(action_logits) + num_end_tokens) : -num_end_tokens,
-            self.action_tokenizer.action_token_begin_idx
-            + 1 : self.action_tokenizer.action_token_begin_idx
-            + 1
-            + self.action_tokenizer.n_bins,
+            self.action_tokenizer.action_token_begin_idx + 1 : self.action_tokenizer.action_token_end_idx,
         ] = action_logits
 
         # [CRITICAL] We do not want to take the loss for anything but the predicted action tokens!

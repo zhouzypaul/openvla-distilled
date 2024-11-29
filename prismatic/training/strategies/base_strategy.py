@@ -314,33 +314,39 @@ class TrainingStrategy(ABC):
                     # Adding distillation
                     if "logits" in batch:
                         # use mask to gather the action indices in the sequence
-                        action_gt = batch["labels"][:, 1:].to(action_preds.device)
-                        mask = (action_tokenizer.action_token_end_idx > action_gt) & (
-                            action_gt > action_tokenizer.action_token_begin_idx
+                        action_gt = batch["labels"][:, 1:].to(output.logits.device)
+                        action_indices = torch.argwhere(
+                            (action_tokenizer.action_token_end_idx > action_gt)
+                            & (action_gt > action_tokenizer.action_token_begin_idx)
                         )
 
-                        teacher_logits = batch["logits"][:, :-1][mask]
-                        student_logits = output.logits[:, self.vlm.vision_backbone.num_patches : -1][mask]
+                        teacher_logits = batch["logits"].to(output.logits.device)
+                        teacher_logits = teacher_logits[:, :-1]
+                        student_logits = output.logits[:, self.vlm.vision_backbone.num_patches : -1]
+
+                        assert teacher_logits.shape == student_logits.shape
+
+                        print("labels ", batch["labels"].shape)
+                        print("action indices ", action_indices.shape)
+                        print("student logits ", student_logits.shape)
+                        print("teacher logits ", teacher_logits.shape)
+
+                        teacher_logits = teacher_logits[:, action_indices[:, 1]]
+                        student_logits = student_logits[:, action_indices[:, 1]]
+
+                        print("student logits ", student_logits.shape)
+                        print("teacher logits ", teacher_logits.shape)
 
                         # only apply the loss to the action logits in the vocabulary
                         teacher_logits = teacher_logits[
-                            :,
-                            :,
-                            action_tokenizer.action_token_begin_idx
-                            + 1 : action_tokenizer.action_token_begin_idx
-                            + 1
-                            + action_tokenizer.n_bins,
+                            :, :, action_tokenizer.action_token_begin_idx + 1 : action_tokenizer.action_token_end_idx
                         ]
                         student_logits = student_logits[
-                            :,
-                            :,
-                            action_tokenizer.action_token_begin_idx
-                            + 1 : action_tokenizer.action_token_begin_idx
-                            + 1
-                            + action_tokenizer.n_bins,
+                            :, :, action_tokenizer.action_token_begin_idx + 1 : action_tokenizer.action_token_end_idx
                         ]
 
-                        assert teacher_logits.shape.size() == student_logits.shape.size()
+                        print("student logits ", student_logits.shape)
+                        print("teacher logits ", teacher_logits.shape)
 
                         # hyperparams
                         # from: https://www.philschmid.de/knowledge-distillation-bert-transformers
