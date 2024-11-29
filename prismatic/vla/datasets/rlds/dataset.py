@@ -140,12 +140,14 @@ def make_dataset_from_rlds(
             data = np.load(p)
             for k in data:
                 keys += [k + "_" + str(i) for i in range(len(data[k]))]
-                values += list(data[k].reshape(len(data[k]), -1))
+                # take the logits for the actions
+                action_logits = data[k][:, :, 1:257]
+                values += list(action_logits.reshape(len(action_logits), -1))
 
         logits_dict = tf.lookup.experimental.DenseHashTable(
             key_dtype=tf.string,
             value_dtype=tf.float32,
-            default_value=np.ones((7 * 321,), dtype=np.float32) * np.inf,
+            default_value=np.ones((7 * 256,), dtype=np.float32) * np.inf,
             empty_key="<empty>",
             deleted_key="<deleted>",
         )
@@ -218,8 +220,15 @@ def make_dataset_from_rlds(
             episode_ids = tf.as_string(tf.repeat(episode_id, traj_len))
             indices = tf.as_string(tf.range(traj_len))
             logits = logits_dict.lookup(file_names + "_" + episode_ids + "_" + indices)
-            logits = tf.reshape(logits, [traj_len, 7, 321])
+            logits = tf.reshape(logits, [traj_len, 7, 256])
             traj["logits"] = logits
+
+            # suuper hacky: remove lang instruction if logits don't exist so traj gets filtered later
+            traj["task"]["language_instruction"] = tf.where(
+                tf.reduce_any(tf.math.is_inf(logits)),
+                tf.repeat("", traj_len),
+                traj["task"]["language_instruction"],
+            )
 
         if absolute_action_mask is not None:
             if len(absolute_action_mask) != traj["action"].shape[-1]:

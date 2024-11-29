@@ -94,15 +94,25 @@ class RLDSBatchTransform:
             # Qwen has <|im_end|><|endoftext|> for example
             num_end_tokens = 2
 
-        logits = torch.zeros([len(input_ids), 321], dtype=torch.float32)
-        logits[-(len(action_logits)+num_end_tokens):-num_end_tokens] = action_logits
+        # create the full logits tensor
+        logits = torch.zeros([len(input_ids), len(self.action_tokenizer.tokenizer)], dtype=torch.float32)
+        # set the logits for the action tokens
+        logits[
+            -(len(action_logits) + num_end_tokens) : -num_end_tokens,
+            self.action_tokenizer.action_token_begin_idx
+            + 1 : self.action_tokenizer.action_token_begin_idx
+            + 1
+            + self.action_tokenizer.n_bins,
+        ] = action_logits
 
         # [CRITICAL] We do not want to take the loss for anything but the predicted action tokens!
         labels[: -(len(raw_action_tokens) + num_end_tokens)] = IGNORE_INDEX
         if not self.predict_stop_token:
             labels[-num_end_tokens:] = IGNORE_INDEX
 
-        return dict(pixel_values=pixel_values, input_ids=input_ids, labels=labels, logits=logits, dataset_name=dataset_name)
+        return dict(
+            pixel_values=pixel_values, input_ids=input_ids, labels=labels, logits=logits, dataset_name=dataset_name
+        )
 
 
 class RLDSDataset(IterableDataset):

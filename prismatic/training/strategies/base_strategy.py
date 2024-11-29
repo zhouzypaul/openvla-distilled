@@ -310,30 +310,55 @@ class TrainingStrategy(ABC):
                         labels=batch["labels"],
                     )
                     student_loss = output.loss
-                    
+
                     # Adding distillation
                     if "logits" in batch:
-                        teacher_logits = batch["logits"]
-                        student_logits = output.logits
+                        # use mask to gather the action indices in the sequence
+                        action_gt = batch["labels"][:, 1:].to(action_preds.device)
+                        mask = (action_tokenizer.action_token_end_idx > action_gt) & (
+                            action_gt > action_tokenizer.action_token_begin_idx
+                        )
+
+                        teacher_logits = batch["logits"][:, :-1][mask]
+                        student_logits = output.logits[:, self.vlm.vision_backbone.num_patches : -1][mask]
+
+                        # only apply the loss to the action logits in the vocabulary
+                        teacher_logits = teacher_logits[
+                            :,
+                            :,
+                            action_tokenizer.action_token_begin_idx
+                            + 1 : action_tokenizer.action_token_begin_idx
+                            + 1
+                            + action_tokenizer.n_bins,
+                        ]
+                        student_logits = student_logits[
+                            :,
+                            :,
+                            action_tokenizer.action_token_begin_idx
+                            + 1 : action_tokenizer.action_token_begin_idx
+                            + 1
+                            + action_tokenizer.n_bins,
+                        ]
+
                         assert teacher_logits.shape.size() == student_logits.shape.size()
-                        
-                        # hyperparams 
+
+                        # hyperparams
                         # from: https://www.philschmid.de/knowledge-distillation-bert-transformers
                         temperature = 4.0  # hard coded, smoothing funciton (can also try 2.0)
                         alpha = 0.5  # hard coded, weight of student loss
-                        
+
                         # soften probabilities and compute distillation loss
-                        loss_function = nn.KLDivLoss(reduction='batchmean')
+                        loss_function = nn.KLDivLoss(reduction="batchmean")
                         loss_logits = loss_function(
                             F.log_softmax(student_logits / temperature, dim=-1),
-                            F.softmax(teacher_logits / temperature, dim=-1)
-                        ) * (temperature ** 2)
+                            F.softmax(teacher_logits / temperature, dim=-1),
+                        ) * (temperature**2)
                         # Return weighted student loss
-                        loss = alpha * student_loss + (1. - alpha) * loss_logits
+                        loss = alpha * student_loss + (1.0 - alpha) * loss_logits
                     else:
                         # no distillation, training from scratch
                         loss = student_loss
-                        loss_logits = 0. * student_loss
+                        loss_logits = 0.0 * student_loss
 
                 # Commit Loss =>> Backward!
                 metrics.commit(
@@ -356,7 +381,9 @@ class TrainingStrategy(ABC):
                 #   3) Compute masked accuracy as `(preds == logits) & mask` --> sum/divide by # unmasked!
                 action_preds = output.logits[:, self.vlm.vision_backbone.num_patches : -1].argmax(dim=2)
                 action_gt = batch["labels"][:, 1:].to(action_preds.device)
-                mask = (action_tokenizer.action_token_end_idx > action_gt) & (action_gt > action_tokenizer.action_token_begin_idx)
+                mask = (action_tokenizer.action_token_end_idx > action_gt) & (
+                    action_gt > action_tokenizer.action_token_begin_idx
+                )
 
                 # Compute Accuracy
                 correct_preds = (action_preds == action_gt) & mask

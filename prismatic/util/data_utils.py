@@ -111,7 +111,7 @@ class PaddedCollatorForActionPrediction:
         assert self.padding_side == "right", f"Invalid Tokenizer `{self.padding_side = }`"
         input_ids = pad_sequence(input_ids, batch_first=True, padding_value=self.pad_token_id)
         labels = pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
-        logits = pad_sequence(logits, batch_first=True, padding_value=IGNORE_INDEX)
+        logits = pad_sequence(logits, batch_first=True, padding_value=0)
 
         # Truncate (if necessary)
         input_ids, labels, logits = input_ids[:, : self.model_max_length], labels[:, : self.model_max_length], logits[:, : self.model_max_length]
