@@ -314,28 +314,18 @@ class TrainingStrategy(ABC):
                     # Adding distillation
                     if "logits" in batch:
                         # use mask to gather the action indices in the sequence
-                        action_gt = batch["labels"][:, 1:].to(output.logits.device)
+                        action_gt = batch["labels"][:, 1:]
                         action_indices = torch.argwhere(
                             (action_tokenizer.action_token_end_idx > action_gt)
                             & (action_gt > action_tokenizer.action_token_begin_idx)
                         )
 
-                        teacher_logits = batch["logits"].to(output.logits.device)
+                        teacher_logits = batch["logits"]
                         teacher_logits = teacher_logits[:, :-1]
+                        teacher_logits = teacher_logits[:, action_indices[:, 1]].to(output.logits.device)
+
                         student_logits = output.logits[:, self.vlm.vision_backbone.num_patches : -1]
-
-                        assert teacher_logits.shape == student_logits.shape
-
-                        print("labels ", batch["labels"].shape)
-                        print("action indices ", action_indices.shape)
-                        print("student logits ", student_logits.shape)
-                        print("teacher logits ", teacher_logits.shape)
-
-                        teacher_logits = teacher_logits[:, action_indices[:, 1]]
-                        student_logits = student_logits[:, action_indices[:, 1]]
-
-                        print("student logits ", student_logits.shape)
-                        print("teacher logits ", teacher_logits.shape)
+                        student_logits = student_logits[:, action_indices[:, 1].to(output.logits.device)]
 
                         # only apply the loss to the action logits in the vocabulary
                         teacher_logits = teacher_logits[
@@ -344,9 +334,6 @@ class TrainingStrategy(ABC):
                         student_logits = student_logits[
                             :, :, action_tokenizer.action_token_begin_idx + 1 : action_tokenizer.action_token_end_idx
                         ]
-
-                        print("student logits ", student_logits.shape)
-                        print("teacher logits ", teacher_logits.shape)
 
                         # hyperparams
                         # from: https://www.philschmid.de/knowledge-distillation-bert-transformers
