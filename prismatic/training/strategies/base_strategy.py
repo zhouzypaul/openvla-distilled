@@ -313,45 +313,39 @@ class TrainingStrategy(ABC):
 
                     # Adding distillation
                     if "logits" in batch:
-                        teacher_logits = batch["logits"]
-
                         # only apply the loss to the action logits in the vocabulary
+                        teacher_logits = batch["logits"][
+                            :,
+                            1:,
+                            action_tokenizer.action_token_begin_idx + 1 : action_tokenizer.action_token_end_idx,
+                        ].to(output.logits.device)
                         student_logits = output.logits[
                             :,
                             self.vlm.vision_backbone.num_patches : -1,
                             action_tokenizer.action_token_begin_idx + 1 : action_tokenizer.action_token_end_idx,
                         ]
-
-                        # gather the action tokens in the sequence
-                        action_gt = batch["labels"][:, 1:]
-                        action_indices = (
-                            torch.argwhere(
-                                (action_tokenizer.action_token_end_idx > action_gt)
-                                & (action_gt > action_tokenizer.action_token_begin_idx)
-                            )[:, 1]
-                            .reshape((action_gt.shape[0], 7))
-                            .to(output.logits.device)
-                        )  # assumes same number of action tokens (7) in each batch element (holds if no truncation)
-                        action_indices = torch.broadcast_to(
-                            action_indices[:, :, None], action_indices.shape + student_logits.shape[-1:]
-                        )
-                        student_logits = torch.gather(student_logits, 1, action_indices)
-
-                        teacher_logits = teacher_logits.to(student_logits.device)
-
                         assert student_logits.shape == teacher_logits.shape
 
-                        # hyperparams
-                        # from: https://www.philschmid.de/knowledge-distillation-bert-transformers
-                        temperature = 2.0  # hard coded, smoothing funciton (can also try 2.0)
-                        alpha = 0.75  # hard coded, weight of student loss
+                        # get mask for action tokens in the sequence
+                        action_gt = batch["labels"][:, 1:]
+                        action_mask = (
+                            (action_tokenizer.action_token_end_idx > action_gt)
+                            & (action_gt > action_tokenizer.action_token_begin_idx)
+                        ).to(output.logits.device)
 
-                        # soften probabilities and compute distillation loss
-                        loss_function = nn.KLDivLoss(reduction="batchmean")
-                        loss_logits = loss_function(
-                            F.log_softmax(student_logits / temperature, dim=-1),
-                            F.softmax(teacher_logits / temperature, dim=-1),
-                        ) * (temperature**2)
+                        # hyperparams
+                        temperature = 2.0
+                        alpha = 0.75
+
+                        soft_targets = F.softmax(teacher_logits / temperature, dim=-1)
+                        soft_prob = F.log_softmax(student_logits / temperature, dim=-1)
+
+                        loss_logits = (
+                            torch.sum(action_mask * (soft_targets * (soft_targets.log() - soft_prob)))
+                            / soft_prob.size(0)
+                            * (temperature**2)
+                        )
+
                         # Return weighted student loss
                         loss = alpha * student_loss + (1.0 - alpha) * loss_logits
                     else:
