@@ -177,7 +177,7 @@ class Exp_Qwen25_DinoSigLIP_224px_0_5B_Bridge(Exp_SigLIP_224px_Bridge):
     # base_vlm: Union[str, Path] = "prism-qwen25-dinosiglip-224px+0_5b"
     # base_vlm: Union[str, Path] = "/shared/projects/icrl/distill_openvla/prism-qwen25-extra-dinosiglip-224px+0_5b+stage-finetune+x7"
     base_vlm: Union[str, Path] = (
-        "/home/verityw/Research/adaptive-cot/openvla-mini-models/prism-qwen25-extra-dinosiglip-224px+0_5b+stage-finetune+x7"
+        "/raid/users/verityw/prism-qwen25-extra-dinosiglip-224px+0_5b+stage-finetune+x7"
     )
 
     data_mix: str = "bridge_orig"  # direct dataset
