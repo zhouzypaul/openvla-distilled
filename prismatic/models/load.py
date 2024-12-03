@@ -66,6 +66,7 @@ def load(
         assert checkpoint_pt.exists(), f"Missing checkpoint for `{run_dir = }`"
     else:
         if model_id_or_path not in GLOBAL_REGISTRY:
+            import pdb; pdb.set_trace()
             raise ValueError(f"Couldn't find `{model_id_or_path = }; check `prismatic.available_model_names()`")
 
         overwatch.info(f"Downloading `{(model_id := GLOBAL_REGISTRY[model_id_or_path]['model_id'])} from HF Hub")

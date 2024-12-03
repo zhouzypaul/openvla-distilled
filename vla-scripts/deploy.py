@@ -48,6 +48,8 @@ from fastapi.responses import JSONResponse
 from PIL import Image
 from transformers import AutoModelForVision2Seq, AutoProcessor
 
+from prismatic.models.load import load_vla, load
+
 # === Utilities ===
 SYSTEM_PROMPT = (
     "A chat between a curious user and an artificial intelligence assistant. "
@@ -75,12 +77,16 @@ class OpenVLAServer:
 
         # Load VLA Model using HF AutoClasses
         self.processor = AutoProcessor.from_pretrained(self.openvla_path, trust_remote_code=True)
-        self.vla = AutoModelForVision2Seq.from_pretrained(
-            self.openvla_path,
-            attn_implementation=attn_implementation,
-            torch_dtype=torch.bfloat16,
-            low_cpu_mem_usage=True,
-            trust_remote_code=True,
+        # self.vla = AutoModelForVision2Seq.from_pretrained(
+        #     self.openvla_path,
+        #     attn_implementation=attn_implementation,
+        #     torch_dtype=torch.bfloat16,
+        #     low_cpu_mem_usage=True,
+        #     trust_remote_code=True,
+        # ).to(self.device)
+        self.vla = load_vla(
+            self.openvla_path, #+ "checkpoints/latest-checkpoint.pt",
+            load_for_training=False,
         ).to(self.device)
 
         # [Hacky] Load Dataset Statistics from Disk (if passing a path to a fine-tuned model)
@@ -101,7 +107,12 @@ class OpenVLAServer:
 
             # Run VLA Inference
             prompt = get_openvla_prompt(instruction, self.openvla_path)
-            inputs = self.processor(prompt, Image.fromarray(image).convert("RGB")).to(self.device, dtype=torch.bfloat16)
+            # inputs = self.processor(prompt, Image.fromarray(image).convert("RGB")).to(self.device, dtype=torch.bfloat16)
+            # import pdb; pdb.set_trace()
+            inputs = {
+                "image": Image.fromarray(image).convert("RGB"),
+                "instruction": prompt,
+            }
             action = self.vla.predict_action(**inputs, unnorm_key=unnorm_key, do_sample=False)
             if double_encode:
                 return JSONResponse(json_numpy.dumps(action))
@@ -126,7 +137,8 @@ class OpenVLAServer:
 @dataclass
 class DeployConfig:
     # fmt: off
-    openvla_path: Union[str, Path] = "openvla/openvla-7b"               # HF Hub Path (or path to local run directory)
+    # openvla_path: Union[str, Path] = "/raid/users/paulzhou/vla-distill-output/prism-qwen25-dinosiglip-224px+0_5b+mx-bridge+n1+b32+x7/"               # HF Hub Path (or path to local run directory)
+    openvla_path: Union[str, Path] = "/raid/users/paulzhou/vla-distill-output/prism-qwen25-dinosiglip-224px+0_5b/"               # HF Hub Path (or path to local run directory)
 
     # Server Configuration
     host: str = "0.0.0.0"                                               # Host IP Address

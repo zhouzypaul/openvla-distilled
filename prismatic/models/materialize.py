@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 
 from transformers import PreTrainedTokenizerBase
 
-from prismatic.models.backbones.llm import LLaMa2LLMBackbone, LLMBackbone, MistralLLMBackbone, PhiLLMBackbone
+# from prismatic.models.backbones.llm import LLaMa2LLMBackbone, LLMBackbone, MistralLLMBackbone, PhiLLMBackbone
 from prismatic.models.backbones.llm.qwen25 import Qwen25LLMBackbone
 from prismatic.models.backbones.vision import (
     CLIPViTBackbone,
@@ -53,24 +53,24 @@ VISION_BACKBONES = {
 
 # === Language Model Registry ===
 LLM_BACKBONES = {
-    # === LLaMa-2 Pure (Non-Chat) Backbones ===
-    "llama2-7b-pure": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
-    "llama2-13b-pure": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
+    # # === LLaMa-2 Pure (Non-Chat) Backbones ===
+    # "llama2-7b-pure": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
+    # "llama2-13b-pure": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
 
-    # === LLaMa-2 Chat Backbones ===
-    "llama2-7b-chat": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
-    "llama2-13b-chat": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
+    # # === LLaMa-2 Chat Backbones ===
+    # "llama2-7b-chat": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
+    # "llama2-13b-chat": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
 
-    # === Vicuna-v1.5 Backbones ===
-    "vicuna-v15-7b": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
-    "vicuna-v15-13b": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
+    # # === Vicuna-v1.5 Backbones ===
+    # "vicuna-v15-7b": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
+    # "vicuna-v15-13b": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
 
-    # === Mistral v0.1 Backbones ===
-    "mistral-v0.1-7b-pure": {"cls": MistralLLMBackbone, "kwargs": {}},
-    "mistral-v0.1-7b-instruct": {"cls": MistralLLMBackbone, "kwargs": {}},
+    # # === Mistral v0.1 Backbones ===
+    # "mistral-v0.1-7b-pure": {"cls": MistralLLMBackbone, "kwargs": {}},
+    # "mistral-v0.1-7b-instruct": {"cls": MistralLLMBackbone, "kwargs": {}},
 
-    # === Phi-2 Backbone ===
-    "phi-2-3b": {"cls": PhiLLMBackbone, "kwargs": {}},
+    # # === Phi-2 Backbone ===
+    # "phi-2-3b": {"cls": PhiLLMBackbone, "kwargs": {}},
 
     # === Qwen2.5 Backbone ===
     "qwen25-0_5b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
@@ -105,10 +105,10 @@ def get_llm_backbone_and_tokenizer(
     llm_max_length: int = 2048,
     hf_token: Optional[str] = None,
     inference_mode: bool = False,
-) -> Tuple[LLMBackbone, PreTrainedTokenizerBase]:
+):
     if llm_backbone_id in LLM_BACKBONES:
         llm_cfg = LLM_BACKBONES[llm_backbone_id]
-        llm_backbone: LLMBackbone = llm_cfg["cls"](
+        llm_backbone = llm_cfg["cls"](
             llm_backbone_id,
             llm_max_length=llm_max_length,
             hf_token=hf_token,
@@ -126,7 +126,7 @@ def get_vlm(
     model_id: str,
     arch_specifier: str,
     vision_backbone: VisionBackbone,
-    llm_backbone: LLMBackbone,
+    llm_backbone,
     enable_mixed_precision_training: bool = True,
 ) -> PrismaticVLM:
     """Lightweight wrapper around initializing a VLM, mostly for future-proofing (if one wants to add a new VLM)."""
